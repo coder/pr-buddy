@@ -27,7 +27,7 @@ pub fn run() {
         .manage(state::AppState::new())
         .setup(|app| {
             // Build system tray
-            let _tray = TrayIconBuilder::new("pr-buddy-tray")
+            let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("PR Buddy")
                 .on_tray_icon_event(|tray, event| {
