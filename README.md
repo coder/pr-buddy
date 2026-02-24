@@ -53,13 +53,13 @@ npm install
 ### Run in Development Mode
 
 ```bash
-npm run tauri dev
+npm install && npm run dev
 ```
 
 ### Build for Production
 
 ```bash
-npm run tauri build
+npm run build
 ```
 
 ### GitHub OAuth Setup
