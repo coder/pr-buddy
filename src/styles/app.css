@@ -14,4 +14,32 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  background-color: #12121a;
+}
+
+/* Custom scrollbar — thin, dark */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth transitions globally */
+* {
+  transition-property: background-color, border-color, color, opacity;
+  transition-timing-function: ease;
+  transition-duration: 100ms;
+}
+
+/* Override for elements that need no transition (e.g. spin animations) */
+.animate-spin {
+  transition: none;
 }
