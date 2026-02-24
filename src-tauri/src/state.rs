@@ -1,0 +1,32 @@
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+use chrono::{DateTime, Utc};
+
+use crate::models::{GitHubUser, PullRequest};
+
+pub struct AppState {
+    pub prs: Mutex<Vec<PullRequest>>,
+    pub previous_prs: Mutex<HashMap<String, PullRequest>>,
+    pub token: Mutex<Option<String>>,
+    pub user: Mutex<Option<GitHubUser>>,
+    pub last_poll: Mutex<Option<DateTime<Utc>>>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self {
+            prs: Mutex::new(Vec::new()),
+            previous_prs: Mutex::new(HashMap::new()),
+            token: Mutex::new(None),
+            user: Mutex::new(None),
+            last_poll: Mutex::new(None),
+        }
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
