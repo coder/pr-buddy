@@ -1,10 +1,10 @@
 {
   "productName": "PR Buddy",
   "version": "0.1.0",
-  "identifier": "com.prbuddy.app",
+  "identifier": "com.prbuddy.dev",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run vite:dev",
+    "beforeBuildCommand": "npm run vite:build",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
