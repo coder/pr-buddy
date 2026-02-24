@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import AuthScreen from "./lib/AuthScreen.svelte";
   import PRPanel from "./lib/PRPanel.svelte";
   import type { PullRequest, GitHubUser } from "./lib/types";
@@ -13,7 +13,20 @@
   let lastUpdated = $state<Date | null>(null);
   let refreshing = $state(false);
 
-  onMount(async () => {
+  let unlisten: (() => void) | null = null;
+
+  onMount(() => {
+    void init();
+  });
+
+  onDestroy(() => {
+    if (unlisten) {
+      unlisten();
+      unlisten = null;
+    }
+  });
+
+  async function init() {
     try {
       authenticated = await invoke<boolean>("is_authenticated_cmd");
       if (authenticated) {
@@ -25,13 +38,11 @@
       loading = false;
     }
 
-    const unlisten = await listen<PullRequest[]>("prs-updated", (event) => {
+    unlisten = await listen<PullRequest[]>("prs-updated", (event) => {
       prList = event.payload;
       lastUpdated = new Date();
     });
-
-    return () => { unlisten(); };
-  });
+  }
 
   async function loadData() {
     const [prs, user] = await Promise.all([
