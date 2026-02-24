@@ -4,7 +4,7 @@ use tauri::State;
 
 use crate::state::AppState;
 
-const GITHUB_CLIENT_ID: &str = "PLACEHOLDER_CLIENT_ID";
+const GITHUB_CLIENT_ID: &str = "Ov23liCVKFN3jOo9R7HS";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceCodeResponse {
