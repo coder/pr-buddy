@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
 use crate::github::fetch_pull_requests;
 use crate::models::{CheckStatus, PullRequest};
@@ -56,8 +56,15 @@ pub fn start_polling(app_handle: AppHandle) {
                             *last_poll = Some(chrono::Utc::now());
                         }
 
-                        // Emit update event to frontend
-                        let _ = app_handle.emit("prs-updated", &new_prs);
+                        // Rebuild tray menu with updated PRs
+                        {
+                            let state = app_handle.state::<AppState>();
+                            if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                                if let Ok(new_menu) = crate::menu::build_pr_menu(&app_handle, &new_prs) {
+                                    let _ = tray.set_menu(Some(new_menu));
+                                }
+                            }
+                        }
 
                         // Adaptive sleep
                         let interval = if has_active_items(&new_prs) {

@@ -1,13 +1,13 @@
 mod auth;
 mod github;
+mod menu;
 mod models;
 mod notifications;
 mod poller;
 mod state;
 
 use tauri::Manager;
-use tauri::menu::{Menu, MenuItem};
-use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::tray::TrayIconBuilder;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -16,7 +16,6 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(
             tauri_plugin_stronghold::Builder::new(|password| {
-                // Use argon2 to hash the password
                 use std::hash::{DefaultHasher, Hasher};
                 let mut hasher = DefaultHasher::new();
                 hasher.write(password.as_bytes());
@@ -27,61 +26,169 @@ pub fn run() {
         )
         .manage(state::AppState::new())
         .setup(|app| {
-            // Build tray context menu (right-click)
-            let quit_item = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit_item])?;
+            // Build initial menu based on auth state
+            let state = app.state::<state::AppState>();
+            let is_authed = state.token.lock().unwrap().is_some();
+            let initial_menu = if is_authed {
+                let prs = state.prs.lock().unwrap();
+                menu::build_pr_menu(app.handle(), &prs)?
+            } else {
+                menu::build_auth_menu(app.handle())?
+            };
 
-            // Build system tray
-            let _tray = TrayIconBuilder::new()
+            // Build system tray — left-click opens native menu
+            let tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("PR Buddy")
-                .menu(&menu)
-                .show_menu_on_left_click(false)
+                .menu(&initial_menu)
+                .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| {
-                    if event.id.as_ref() == "quit" {
-                        app.exit(0);
-                    }
-                })
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                        }
-                    }
+                    handle_menu_event(app, event.id.as_ref());
                 })
                 .build(app)?;
 
-            // On macOS, set the activation policy to accessory (no dock icon)
+            // Store tray handle so poller can update the menu
+            *state.tray.lock().unwrap() = Some(tray);
+
             #[cfg(target_os = "macos")]
             {
                 app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             }
 
-            // Start background polling
             poller::start_polling(app.handle().clone());
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            auth::start_device_flow_cmd,
-            auth::poll_for_token_cmd,
-            auth::logout_cmd,
-            auth::is_authenticated_cmd,
-            github::get_pull_requests_cmd,
-            github::get_user_info_cmd,
-            github::refresh_prs_cmd,
-        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
+    match id {
+        "quit" => app.exit(0),
+
+        "refresh" => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let token = {
+                    let state = app.state::<state::AppState>();
+                    state.token.lock().unwrap().clone()
+                };
+                if let Some(token) = token {
+                    if let Ok(prs) = github::fetch_pull_requests(&token).await {
+                        let state = app.state::<state::AppState>();
+                        *state.prs.lock().unwrap() = prs.clone();
+                        if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                            if let Ok(new_menu) = menu::build_pr_menu(&app, &prs) {
+                                let _ = tray.set_menu(Some(new_menu));
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        "sign_in" => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                match auth::start_device_flow().await {
+                    Ok(resp) => {
+                        // Copy user_code to clipboard
+                        if let Ok(mut clipboard) = arboard::Clipboard::new() {
+                            let _ = clipboard.set_text(&resp.user_code);
+                        }
+
+                        // Open verification URL in browser
+                        {
+                            use tauri_plugin_opener::OpenerExt;
+                            let _ = app.opener().open_url(&resp.verification_uri, None::<&str>);
+                        }
+
+                        // Update menu to pending state
+                        {
+                            let state = app.state::<state::AppState>();
+                            if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                                if let Ok(pending_menu) =
+                                    menu::build_auth_pending_menu(&app, &resp.user_code)
+                                {
+                                    let _ = tray.set_menu(Some(pending_menu));
+                                }
+                            }
+                        }
+
+                        // Poll for token until success or expiry
+                        let expires_at = std::time::Instant::now()
+                            + std::time::Duration::from_secs(resp.expires_in);
+                        let interval = std::time::Duration::from_secs(resp.interval.max(5));
+
+                        loop {
+                            tokio::time::sleep(interval).await;
+                            if std::time::Instant::now() >= expires_at {
+                                eprintln!("[auth] Device flow expired");
+                                let state = app.state::<state::AppState>();
+                                if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                                    if let Ok(m) = menu::build_auth_menu(&app) {
+                                        let _ = tray.set_menu(Some(m));
+                                    }
+                                }
+                                break;
+                            }
+
+                            let state = app.state::<state::AppState>();
+                            match auth::poll_for_token(&resp.device_code, &state).await {
+                                Ok(true) => {
+                                    eprintln!("[auth] ✅ Authenticated via menu");
+                                    let token = state.token.lock().unwrap().clone();
+                                    if let Some(token) = token {
+                                        let prs = github::fetch_pull_requests(&token)
+                                            .await
+                                            .unwrap_or_default();
+                                        *state.prs.lock().unwrap() = prs.clone();
+                                        if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                                            if let Ok(m) = menu::build_pr_menu(&app, &prs) {
+                                                let _ = tray.set_menu(Some(m));
+                                            }
+                                        }
+                                    }
+                                    break;
+                                }
+                                Ok(false) => continue,
+                                Err(e) => {
+                                    eprintln!("[auth] Token poll error: {}", e);
+                                    if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                                        if let Ok(m) = menu::build_auth_menu(&app) {
+                                            let _ = tray.set_menu(Some(m));
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[auth] Failed to start device flow: {}", e);
+                    }
+                }
+            });
+        }
+
+        id if id.starts_with("pr_") => {
+            let pr_id = &id[3..];
+            let state = app.state::<state::AppState>();
+            let prs = state.prs.lock().unwrap();
+            if let Some(pr) = prs.iter().find(|p| p.id == pr_id) {
+                use tauri_plugin_opener::OpenerExt;
+                let _ = app.opener().open_url(&pr.url, None::<&str>);
+            }
+        }
+
+        id if id.starts_with("see_all_") => {
+            use tauri_plugin_opener::OpenerExt;
+            let _ = app
+                .opener()
+                .open_url("https://github.com/pulls", None::<&str>);
+        }
+
+        _ => {}
+    }
 }
