@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use chrono::{DateTime, Utc};
+use tauri::tray::TrayIcon;
 
 use crate::models::{GitHubUser, PullRequest};
 
@@ -11,6 +12,7 @@ pub struct AppState {
     pub token: Mutex<Option<String>>,
     pub user: Mutex<Option<GitHubUser>>,
     pub last_poll: Mutex<Option<DateTime<Utc>>>,
+    pub tray: Mutex<Option<TrayIcon>>,
 }
 
 impl AppState {
@@ -21,6 +23,7 @@ impl AppState {
             token: Mutex::new(None),
             user: Mutex::new(None),
             last_poll: Mutex::new(None),
+            tray: Mutex::new(None),
         }
     }
 }
