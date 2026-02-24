@@ -6,7 +6,7 @@ mod poller;
 mod state;
 
 use tauri::Manager;
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -27,10 +27,16 @@ pub fn run() {
         .manage(state::AppState::new())
         .setup(|app| {
             // Build system tray
-            let _tray = TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::new("pr-buddy-tray")
+                .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("PR Buddy")
                 .on_tray_icon_event(|tray, event| {
-                    if let tauri::tray::TrayIconEvent::Click { .. } = event {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
                         let app = tray.app_handle();
                         if let Some(window) = app.get_webview_window("main") {
                             if window.is_visible().unwrap_or(false) {
