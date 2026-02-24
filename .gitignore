@@ -6,3 +6,4 @@ src-tauri/target/
 *.swp
 *.swo
 package-lock.json
+src-tauri/Cargo.lock
