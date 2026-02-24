@@ -25,6 +25,9 @@
     ],
     "security": {
       "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https://api.github.com https://github.com; img-src 'self' https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'"
+    },
+    "trayIcon": {
+      "iconPath": "icons/tray-default.png"
     }
   },
   "bundle": {
