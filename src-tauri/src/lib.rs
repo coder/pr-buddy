@@ -6,6 +6,7 @@ mod poller;
 mod state;
 
 use tauri::Manager;
+use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -26,10 +27,21 @@ pub fn run() {
         )
         .manage(state::AppState::new())
         .setup(|app| {
+            // Build tray context menu (right-click)
+            let quit_item = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit_item])?;
+
             // Build system tray
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("PR Buddy")
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| {
+                    if event.id.as_ref() == "quit" {
+                        app.exit(0);
+                    }
+                })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,

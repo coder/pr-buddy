@@ -21,8 +21,11 @@
   async function startFlow() {
     step = "waiting";
     errorMsg = "";
+    pollError = "";
     try {
+      console.log("[auth] Starting device flow...");
       deviceResponse = await invoke<DeviceCodeResponse>("start_device_flow_cmd");
+      console.log("[auth] Device flow response:", JSON.stringify(deviceResponse));
       secondsLeft = deviceResponse.expires_in;
 
       timerInterval = setInterval(() => {
@@ -34,25 +37,32 @@
         }
       }, 1000);
 
+      const interval = (deviceResponse.interval || 5) * 1000;
+      console.log("[auth] Starting poll every", interval, "ms");
       pollInterval = setInterval(async () => {
+        console.log("[auth] Polling for token...");
         try {
           const success = await invoke<boolean>("poll_for_token_cmd", {
             deviceCode: deviceResponse!.device_code,
           });
+          console.log("[auth] Poll result:", success);
           pollError = "";
           if (success) {
+            console.log("[auth] ✅ Authenticated!");
             cleanup();
             onSuccess();
           }
         } catch (e) {
-          // Real errors surface here — authorization_pending returns Ok(false)
-          // in Rust, so it does NOT throw. Only actual failures reach this block.
-          pollError = e instanceof Error ? e.message : String(e);
+          const msg = typeof e === "string" ? e : JSON.stringify(e);
+          console.error("[auth] Poll error:", msg);
+          pollError = msg;
         }
-      }, (deviceResponse.interval || 5) * 1000);
+      }, interval);
     } catch (e) {
+      const msg = typeof e === "string" ? e : JSON.stringify(e);
+      console.error("[auth] Failed to start device flow:", msg);
       step = "error";
-      errorMsg = "Failed to start sign in. Please try again.";
+      errorMsg = msg || "Failed to start sign in. Please try again.";
     }
   }
 
