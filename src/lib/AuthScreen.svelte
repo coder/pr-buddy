@@ -37,7 +37,7 @@
       pollInterval = setInterval(async () => {
         try {
           const success = await invoke<boolean>("poll_for_token_cmd", {
-            deviceCode: deviceResponse!.device_code,
+            device_code: deviceResponse!.device_code,
           });
           pollError = "";
           if (success) {
