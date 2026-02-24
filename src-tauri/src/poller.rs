@@ -59,7 +59,8 @@ pub fn start_polling(app_handle: AppHandle) {
                         // Rebuild tray menu with updated PRs
                         {
                             let state = app_handle.state::<AppState>();
-                            if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                            let tray_guard = state.tray.lock().unwrap();
+                            if let Some(tray) = tray_guard.as_ref() {
                                 if let Ok(new_menu) = crate::menu::build_pr_menu(&app_handle, &new_prs) {
                                     let _ = tray.set_menu(Some(new_menu));
                                 }

@@ -72,13 +72,15 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
             tauri::async_runtime::spawn(async move {
                 let token = {
                     let state = app.state::<state::AppState>();
-                    state.token.lock().unwrap().clone()
+                    let val = state.token.lock().unwrap().clone();
+                    val
                 };
                 if let Some(token) = token {
                     if let Ok(prs) = github::fetch_pull_requests(&token).await {
                         let state = app.state::<state::AppState>();
                         *state.prs.lock().unwrap() = prs.clone();
-                        if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                        let tray_guard = state.tray.lock().unwrap();
+                        if let Some(tray) = tray_guard.as_ref() {
                             if let Ok(new_menu) = menu::build_pr_menu(&app, &prs) {
                                 let _ = tray.set_menu(Some(new_menu));
                             }
@@ -107,7 +109,8 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                         // Update menu to pending state
                         {
                             let state = app.state::<state::AppState>();
-                            if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                            let tray_guard = state.tray.lock().unwrap();
+                            if let Some(tray) = tray_guard.as_ref() {
                                 if let Ok(pending_menu) =
                                     menu::build_auth_pending_menu(&app, &resp.user_code)
                                 {
@@ -126,7 +129,8 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                             if std::time::Instant::now() >= expires_at {
                                 eprintln!("[auth] Device flow expired");
                                 let state = app.state::<state::AppState>();
-                                if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                                let tray_guard = state.tray.lock().unwrap();
+                                if let Some(tray) = tray_guard.as_ref() {
                                     if let Ok(m) = menu::build_auth_menu(&app) {
                                         let _ = tray.set_menu(Some(m));
                                     }
@@ -138,13 +142,17 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                             match auth::poll_for_token(&resp.device_code, &state).await {
                                 Ok(true) => {
                                     eprintln!("[auth] ✅ Authenticated via menu");
-                                    let token = state.token.lock().unwrap().clone();
+                                    let token = {
+                                        let val = state.token.lock().unwrap().clone();
+                                        val
+                                    };
                                     if let Some(token) = token {
                                         let prs = github::fetch_pull_requests(&token)
                                             .await
                                             .unwrap_or_default();
                                         *state.prs.lock().unwrap() = prs.clone();
-                                        if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                                        let tray_guard = state.tray.lock().unwrap();
+                                        if let Some(tray) = tray_guard.as_ref() {
                                             if let Ok(m) = menu::build_pr_menu(&app, &prs) {
                                                 let _ = tray.set_menu(Some(m));
                                             }
@@ -155,7 +163,8 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                                 Ok(false) => continue,
                                 Err(e) => {
                                     eprintln!("[auth] Token poll error: {}", e);
-                                    if let Some(tray) = state.tray.lock().unwrap().as_ref() {
+                                    let tray_guard = state.tray.lock().unwrap();
+                                    if let Some(tray) = tray_guard.as_ref() {
                                         if let Ok(m) = menu::build_auth_menu(&app) {
                                             let _ = tray.set_menu(Some(m));
                                         }
