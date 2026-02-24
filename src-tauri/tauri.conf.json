@@ -10,21 +10,9 @@
   },
   "app": {
     "withGlobalTauri": false,
-    "windows": [
-      {
-        "label": "main",
-        "title": "PR Buddy",
-        "width": 380,
-        "height": 520,
-        "visible": false,
-        "skipTaskbar": true,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "resizable": false
-      }
-    ],
+    "windows": [],
     "security": {
-      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https://api.github.com https://github.com; img-src 'self' https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'"
     }
   },
   "bundle": {
