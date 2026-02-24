@@ -13,6 +13,7 @@
   let secondsLeft = $state(0);
   let copied = $state(false);
   let errorMsg = $state("");
+  let pollError = $state("");
 
   let timerInterval: ReturnType<typeof setInterval> | undefined;
   let pollInterval: ReturnType<typeof setInterval> | undefined;
@@ -38,12 +39,15 @@
           const success = await invoke<boolean>("poll_for_token_cmd", {
             deviceCode: deviceResponse!.device_code,
           });
+          pollError = "";
           if (success) {
             cleanup();
             onSuccess();
           }
-        } catch {
-          // Polling errors are expected (authorization_pending)
+        } catch (e) {
+          // Real errors surface here — authorization_pending returns Ok(false)
+          // in Rust, so it does NOT throw. Only actual failures reach this block.
+          pollError = e instanceof Error ? e.message : String(e);
         }
       }, (deviceResponse.interval || 5) * 1000);
     } catch (e) {
@@ -140,6 +144,9 @@
         <div class="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
         <p class="text-gray-500 text-xs">Waiting for authorization…</p>
         <p class="text-gray-600 text-xs">Expires in {formatTime(secondsLeft)}</p>
+        {#if pollError}
+          <p class="text-red-400 text-xs mt-1 text-center px-2">{pollError}</p>
+        {/if}
       </div>
     </div>
 
