@@ -1,0 +1,219 @@
+use tauri::AppHandle;
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+
+use crate::models::{CheckStatus, PrState, PullRequest};
+
+struct PrSection {
+    title: String,
+    icon: &'static str,
+    prs: Vec<PullRequest>,
+}
+
+/// Port of src/lib/stores.ts groupPrs() — same 7 sections, same filter logic
+fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
+    let drafts: Vec<_> = all_prs
+        .iter()
+        .filter(|pr| pr.state == PrState::Open && pr.is_draft)
+        .cloned()
+        .collect();
+    let non_draft_open: Vec<_> = all_prs
+        .iter()
+        .filter(|pr| pr.state == PrState::Open && !pr.is_draft)
+        .cloned()
+        .collect();
+
+    vec![
+        PrSection {
+            title: "In Merge Queue".into(),
+            icon: "🚀",
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| pr.merge_queue_info.is_some())
+                .cloned()
+                .collect(),
+        },
+        PrSection {
+            title: "Checks Failing".into(),
+            icon: "❌",
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| {
+                    pr.merge_queue_info.is_none()
+                        && (pr.check_status == CheckStatus::Failure
+                            || pr.check_status == CheckStatus::Error)
+                })
+                .cloned()
+                .collect(),
+        },
+        PrSection {
+            title: "Changes Requested".into(),
+            icon: "🔄",
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| {
+                    pr.merge_queue_info.is_none()
+                        && pr.check_status != CheckStatus::Failure
+                        && pr.check_status != CheckStatus::Error
+                        && pr.review_decision.as_deref() == Some("CHANGES_REQUESTED")
+                })
+                .cloned()
+                .collect(),
+        },
+        PrSection {
+            title: "Waiting for Review".into(),
+            icon: "👀",
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| {
+                    pr.merge_queue_info.is_none()
+                        && pr.check_status != CheckStatus::Failure
+                        && pr.check_status != CheckStatus::Error
+                        && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
+                        && pr.review_decision.as_deref() != Some("APPROVED")
+                })
+                .cloned()
+                .collect(),
+        },
+        PrSection {
+            title: "Approved".into(),
+            icon: "✅",
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| {
+                    pr.merge_queue_info.is_none()
+                        && pr.check_status != CheckStatus::Failure
+                        && pr.check_status != CheckStatus::Error
+                        && pr.review_decision.as_deref() == Some("APPROVED")
+                })
+                .cloned()
+                .collect(),
+        },
+        PrSection {
+            title: "Draft".into(),
+            icon: "📝",
+            prs: drafts,
+        },
+        PrSection {
+            title: "Recently Merged".into(),
+            icon: "🟣",
+            prs: all_prs
+                .iter()
+                .filter(|pr| pr.state == PrState::Merged)
+                .cloned()
+                .collect(),
+        },
+    ]
+}
+
+/// Build the full PR menu with grouped sections
+pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu<tauri::Wry>> {
+    let sections = group_prs(prs);
+    let menu = Menu::new(app)?;
+
+    let mut first = true;
+    for section in &sections {
+        if section.prs.is_empty() {
+            continue;
+        }
+
+        if !first {
+            let sep = PredefinedMenuItem::separator(app)?;
+            menu.append(&sep)?;
+        }
+        first = false;
+
+        // Section header (disabled)
+        let header_text = format!("{} {} ({})", section.icon, section.title, section.prs.len());
+        let header = MenuItem::with_id(
+            app,
+            &format!("header_{}", section.title),
+            &header_text,
+            false,
+            None::<&str>,
+        )?;
+        menu.append(&header)?;
+
+        // PR items (max 5 per section)
+        let show_count = section.prs.len().min(5);
+        for pr in &section.prs[..show_count] {
+            let label = format!("  #{} {}", pr.number, truncate(&pr.title, 45));
+            let item = MenuItem::with_id(
+                app,
+                &format!("pr_{}", pr.id),
+                &label,
+                true,
+                None::<&str>,
+            )?;
+            menu.append(&item)?;
+        }
+
+        if section.prs.len() > 5 {
+            let see_all = MenuItem::with_id(
+                app,
+                &format!("see_all_{}", section.title),
+                "  See all ↗",
+                true,
+                None::<&str>,
+            )?;
+            menu.append(&see_all)?;
+        }
+    }
+
+    // If no sections had PRs, show empty state
+    if first {
+        let empty = MenuItem::with_id(app, "empty", "No pull requests", false, None::<&str>)?;
+        menu.append(&empty)?;
+    }
+
+    // Footer
+    let sep = PredefinedMenuItem::separator(app)?;
+    menu.append(&sep)?;
+    let refresh = MenuItem::with_id(app, "refresh", "Refresh", true, None::<&str>)?;
+    menu.append(&refresh)?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
+    menu.append(&sep2)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
+    menu.append(&quit)?;
+
+    Ok(menu)
+}
+
+/// Auth menu shown when not logged in
+pub fn build_auth_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let menu = Menu::new(app)?;
+    let sign_in = MenuItem::with_id(app, "sign_in", "Sign in with GitHub", true, None::<&str>)?;
+    menu.append(&sign_in)?;
+    let sep = PredefinedMenuItem::separator(app)?;
+    menu.append(&sep)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
+    menu.append(&quit)?;
+    Ok(menu)
+}
+
+/// Auth-pending menu shown during device flow
+pub fn build_auth_pending_menu(
+    app: &AppHandle,
+    user_code: &str,
+) -> tauri::Result<Menu<tauri::Wry>> {
+    let menu = Menu::new(app)?;
+    let code_label = format!("Code: {} — copied!", user_code);
+    let code_item = MenuItem::with_id(app, "code_display", &code_label, false, None::<&str>)?;
+    menu.append(&code_item)?;
+    let waiting = MenuItem::with_id(app, "waiting", "Waiting for authorization...", false, None::<&str>)?;
+    menu.append(&waiting)?;
+    let sep = PredefinedMenuItem::separator(app)?;
+    menu.append(&sep)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
+    menu.append(&quit)?;
+    Ok(menu)
+}
+
+fn truncate(s: &str, max: usize) -> String {
+    let mut chars = s.chars();
+    let truncated: String = chars.by_ref().take(max).collect();
+    if chars.next().is_some() {
+        format!("{}…", truncated)
+    } else {
+        truncated
+    }
+}

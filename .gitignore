@@ -1,0 +1,9 @@
+node_modules/
+dist/
+target/
+src-tauri/target/
+.DS_Store
+*.swp
+*.swo
+package-lock.json
+src-tauri/Cargo.lock
