@@ -19,7 +19,7 @@ ICONS_DIR = ROOT / "src-tauri" / "icons"
 
 BG_COLOR = (91, 110, 245, 255)   # #5B6EF5 — solid indigo
 WHITE = (255, 255, 255, 255)
-BLACK = (30, 30, 30, 255)        # near-black for macOS tray template
+TRAY_WHITE = (255, 255, 255, 255) # white for macOS tray template image
 
 
 def _draw_bell(draw: ImageDraw.ImageDraw, size: int, fill: tuple) -> None:
@@ -79,10 +79,10 @@ def create_app_icon(size: int = 1024) -> Image.Image:
 
 
 def create_tray_icon(size: int = 64) -> Image.Image:
-    """Dark filled bell on transparent background (macOS template image)."""
+    """White filled bell on transparent background (macOS template image)."""
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
-    _draw_bell(draw, size, BLACK)
+    _draw_bell(draw, size, TRAY_WHITE)
     return canvas
 
 
@@ -103,7 +103,7 @@ def main() -> None:
     save_png(app, ICONS_DIR / "128x128@2x.png", 256)
     save_png(app, ICONS_DIR / "icon.png", 512)
 
-    # Tray icon (transparent background, dark bell)
+    # Tray icon (transparent background, white bell — macOS template image)
     save_png(tray, ICONS_DIR / "tray-default.png", 32)
 
     # Windows ICO (multi-resolution)

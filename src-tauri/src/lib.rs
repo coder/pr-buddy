@@ -53,6 +53,7 @@ pub fn run() {
 
             let tray = TrayIconBuilder::new()
                 .icon(tray_icon)
+                .icon_as_template(true)
                 .tooltip("PR Buddy")
                 .menu(&initial_menu)
                 .show_menu_on_left_click(true)
