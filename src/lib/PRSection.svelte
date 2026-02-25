@@ -8,6 +8,10 @@
   let { section }: Props = $props();
 
   let collapsed = $state(false);
+  let visibleCount = $state(5);
+  let SectionIcon = $derived(section.icon);
+  let visiblePrs = $derived(section.prs.slice(0, visibleCount));
+  let hasMore = $derived(visibleCount < section.prs.length);
 </script>
 
 <div class="border-b border-gray-800/50 last:border-b-0">
@@ -17,7 +21,7 @@
            transition-colors text-left"
   >
     <div class="flex items-center gap-2">
-      <span class="text-xs">{section.icon}</span>
+      <SectionIcon size={14} class="text-gray-400" />
       <span class="text-xs font-medium text-gray-400">{section.title}</span>
       <span class="text-[10px] text-gray-600 bg-gray-800 px-1.5 py-0.5 rounded-full">
         {section.prs.length}
@@ -33,9 +37,19 @@
 
   {#if !collapsed}
     <div class="pb-1">
-      {#each section.prs as pr (pr.id)}
+      {#each visiblePrs as pr (pr.id)}
         <PRCard {pr} />
       {/each}
+
+      {#if hasMore}
+        <button
+          onclick={() => { visibleCount += 5; }}
+          class="w-full text-[11px] text-gray-500 hover:text-gray-300 py-1.5 px-4
+                 hover:bg-[#1e1e2e]/50 transition-colors text-left"
+        >
+          Show more ({section.prs.length - visibleCount} remaining)
+        </button>
+      {/if}
     </div>
   {/if}
 </div>

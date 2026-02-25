@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::github::fetch_pull_requests;
 use crate::models::{CheckStatus, PullRequest};
@@ -66,6 +66,9 @@ pub fn start_polling(app_handle: AppHandle) {
                                 }
                             }
                         }
+
+                        // Emit to frontend webview
+                        let _ = app_handle.emit("prs-updated", &new_prs);
 
                         // Adaptive sleep
                         let interval = if has_active_items(&new_prs) {

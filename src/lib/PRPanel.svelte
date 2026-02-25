@@ -1,4 +1,9 @@
 <script lang="ts">
+  import Bell from "@lucide/svelte/icons/bell";
+  import Inbox from "@lucide/svelte/icons/inbox";
+  import PartyPopper from "@lucide/svelte/icons/party-popper";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import LogOut from "@lucide/svelte/icons/log-out";
   import type { PullRequest, GitHubUser } from "./types";
   import { groupPrs } from "./stores";
   import PRSection from "./PRSection.svelte";
@@ -35,7 +40,7 @@
 <!-- Header -->
 <div class="flex items-center justify-between px-4 py-3 border-b border-gray-800 shrink-0">
   <div class="flex items-center gap-2">
-    <span class="text-base">🔔</span>
+    <Bell size={16} class="text-gray-400" />
     <h1 class="text-sm font-semibold text-white">PR Buddy</h1>
     {#if totalPrs > 0}
       <span class="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded-full font-medium">
@@ -56,10 +61,7 @@
       class="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded hover:bg-[#1e1e2e]"
       title="Sign out"
     >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round"
-          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-      </svg>
+      <LogOut size={16} />
     </button>
   </div>
 </div>
@@ -68,13 +70,13 @@
 <div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
   {#if prs.length === 0}
     <div class="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
-      <span class="text-2xl">🎉</span>
+      <Inbox size={24} class="text-gray-500" />
       <p class="text-sm">No pull requests found</p>
       <p class="text-xs text-gray-600">Your PRs will appear here</p>
     </div>
   {:else if sections.length === 0}
     <div class="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
-      <span class="text-2xl">✨</span>
+      <PartyPopper size={24} class="text-gray-500" />
       <p class="text-sm">All clear!</p>
     </div>
   {:else}
@@ -97,7 +99,7 @@
     class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
            transition-colors disabled:opacity-50 py-1 px-2 rounded hover:bg-[#1e1e2e]"
   >
-    <span class="{refreshing ? 'animate-spin' : ''}">🔄</span>
+    <RefreshCw size={12} class={refreshing ? "animate-spin" : ""} />
     Refresh
   </button>
 </div>

@@ -59,9 +59,13 @@ pr-buddy/
 │       ├── poller.rs             # Background adaptive polling loop
 │       └── notifications.rs      # Event diffing + OS notification dispatch
 ├── scripts/
-│   └── generate_icons.py         # Python3+Pillow icon generator (idempotent)
+│   ├── generate_icons.py         # Python3+Pillow icon generator (idempotent)
+│   └── smoke-test.sh             # Dev server import smoke test
+├── src/__mocks__/                # Tauri API stubs for vitest/jsdom
 ├── package.json
+├── Makefile                      # dev/build/check/test/smoke/ci targets
 ├── vite.config.ts
+├── vitest.config.ts              # Test runner config (jsdom + Tauri mocks)
 ├── svelte.config.js
 ├── tailwind.config.js
 ├── postcss.config.js
@@ -103,13 +107,13 @@ All commands are registered in `lib.rs` via `invoke_handler`. Frontend calls the
 
 ```bash
 # Install frontend dependencies (required before any other command)
-npm install
+npm install         # or: make install
 
 # Full Tauri app — Rust backend + Vite frontend (requires Rust 1.77+)
-npm run dev
+make dev            # or: npm run dev
 
 # Build release binary (output in src-tauri/target/release/bundle/)
-npm run build
+make build          # or: npm run build
 
 # Frontend-only dev server (no Rust compilation, for UI iteration)
 npm run vite:dev
@@ -118,13 +122,22 @@ npm run vite:dev
 npm run vite:build
 
 # TypeScript + Svelte type checking
-npm run check
+make check          # or: npm run check
+
+# Run component tests (vitest + jsdom)
+make test           # or: npm run test
+
+# Smoke test — starts Vite dev server and verifies no import errors
+make smoke          # or: npm run smoke
+
+# Run ALL pre-push checks (check + test + smoke + build)
+make ci
 
 # Regenerate app icons (requires Python 3 + Pillow)
 python3 scripts/generate_icons.py
 
 # Clean build artifacts
-rm -rf dist/ src-tauri/target/
+make clean
 ```
 
 **Important:** `npm run dev` and `npm run build` invoke `tauri dev`/`tauri build`, which internally run `npm run vite:dev`/`npm run vite:build` via `beforeDevCommand`/`beforeBuildCommand` in `tauri.conf.json`. Do **not** change the top-level `dev`/`build` scripts to call Vite directly — that breaks the Tauri build chain. Do **not** point `beforeBuildCommand` at `npm run build` — that creates an infinite recursion loop.
@@ -165,6 +178,27 @@ New commands must be added to the `invoke_handler` macro in `lib.rs`.
 
 This project uses Svelte 5 runes syntax (`$state`, `$derived`, `$effect`, `$props`), **not** Svelte 4 stores in components. The `src/lib/stores.ts` file uses classic `writable()` stores for backward compat, but components use runes directly.
 
+### Icons (Lucide)
+
+Use **`@lucide/svelte`** (the Svelte 5 package), **not** `lucide-svelte` (Svelte 4 only).
+
+Always use deep imports — barrel imports cause Vite dev server resolution failures:
+
+```typescript
+// ✅ Correct — deep import
+import Bell from "@lucide/svelte/icons/bell";
+
+// ❌ Wrong — barrel import, breaks Vite dev
+import { Bell } from "@lucide/svelte";
+
+// ❌ Wrong — old Svelte 4 package
+import { Bell } from "lucide-svelte";
+```
+
+Icon names are kebab-case: `bell`, `x-circle`, `rotate-ccw`, `check-circle`, `file-edit`, `git-merge`, `log-out`, `party-popper`, `refresh-cw`, etc.
+
+**When adding a new icon import**, also add it to the `optimizeDeps.include` array in `vite.config.ts` so Vite pre-bundles it for dev.
+
 ### onMount Async
 
 Svelte 5's `onMount` does **not** accept async callbacks that return cleanup functions. Use a synchronous `onMount` callback and call a separate `async function init()` inside:
@@ -186,6 +220,42 @@ Do **not** write `onMount(async () => { ... return cleanup; })`.
 - **Do not use the bundle identifier `com.prbuddy.app`.** The `.app` suffix conflicts with macOS bundle extensions. Current identifier: `com.prbuddy.dev`.
 - **Do not commit `node_modules/`, `dist/`, or `src-tauri/target/`.** These are in `.gitignore`.
 
+## Testing
+
+### Test Stack
+
+| Tool | Purpose |
+|------|---------|
+| Vitest | Test runner (uses Vite for transforms) |
+| @testing-library/svelte | Component rendering in jsdom |
+| jsdom | Browser environment for Node |
+| scripts/smoke-test.sh | Dev server import validation |
+
+### Component Tests (`src/lib/components.test.ts`)
+
+Every Svelte component has a basic render test that imports it, mounts it with mock props, and verifies it produces output. This catches:
+- Broken import paths (e.g., wrong icon package)
+- Missing exports
+- Render crashes from bad props
+
+Run with `make test` or `npm run test`.
+
+### Smoke Test (`scripts/smoke-test.sh`)
+
+Starts the Vite dev server, fetches every entry module, and checks for `"Failed to resolve import"` errors in the server log. This catches issues that `vite build` and `svelte-check` miss — specifically, import resolution differences between Vite's build and dev modes (e.g., the `"svelte"` export condition in `@lucide/svelte`).
+
+Run with `make smoke` or `npm run smoke`.
+
+### Tauri API Mocks (`src/__mocks__/`)
+
+Components import Tauri APIs (`@tauri-apps/api/core`, `@tauri-apps/plugin-opener`, etc.) which don't exist in a jsdom environment. The `vitest.config.ts` aliases these to stub modules in `src/__mocks__/` that return sensible defaults.
+
+When adding a new Tauri plugin import to a component, add a corresponding mock in `src/__mocks__/` and alias it in `vitest.config.ts`.
+
+### CI Shortcut
+
+`make ci` runs the full validation suite in order: `check → test → smoke → build`. Run this before pushing.
+
 ## Commit and Pull Request Guidelines
 
 ### Commit Conventions
@@ -202,11 +272,12 @@ Common prefixes: `feat`, `fix`, `chore`, `refactor`, `docs`.
 
 ### Before Committing
 
-1. Run `npm run check` — must report 0 errors.
-2. Run `npm run vite:build` — must succeed.
+1. Run `make ci` — this runs type-check, unit tests, smoke test, and production build in sequence.
+2. Alternatively, run them individually: `npm run check`, `npm run test`, `npm run smoke`, `npm run vite:build`.
 3. If Rust code changed and Rust 1.77+ is available, run `cargo check` in `src-tauri/`.
 4. Do not push to `origin/main` or `origin/master` directly.
 5. Branch names must be prefixed with `mike/` (e.g., `mike/fix-tray-click`).
+6. **Do not claim imports or dependencies work without running `make smoke`** — `vite build` and `svelte-check` do not catch all import resolution errors that appear in the Vite dev server.
 
 ### Pull Request Descriptions
 

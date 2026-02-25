@@ -167,6 +167,7 @@ pub async fn fetch_pull_requests(token: &str) -> Result<Vec<PullRequest>, AuthEr
     Ok(nodes.iter().filter_map(parse_pr_node).collect())
 }
 
+#[allow(dead_code)] // Called via Tauri IPC (get_user_info_cmd)
 pub async fn fetch_user_info(token: &str) -> Result<GitHubUser, AuthError> {
     let client = Client::new();
 

@@ -1,4 +1,11 @@
 import { writable } from "svelte/store";
+import Rocket from "@lucide/svelte/icons/rocket";
+import XCircle from "@lucide/svelte/icons/x-circle";
+import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+import Eye from "@lucide/svelte/icons/eye";
+import CheckCircle from "@lucide/svelte/icons/check-circle";
+import FileEdit from "@lucide/svelte/icons/file-edit";
+import GitMerge from "@lucide/svelte/icons/git-merge";
 import type { PullRequest, GitHubUser, PrSection } from "./types";
 
 export const prs = writable<PullRequest[]>([]);
@@ -14,12 +21,12 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
   const sections: PrSection[] = [
     {
       title: "In Merge Queue",
-      icon: "🚀",
+      icon: Rocket,
       prs: nonDraftOpen.filter(pr => pr.merge_queue_info != null),
     },
     {
       title: "Checks Failing",
-      icon: "❌",
+      icon: XCircle,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         (pr.check_status === "failure" || pr.check_status === "error")
@@ -27,7 +34,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     },
     {
       title: "Changes Requested",
-      icon: "🔄",
+      icon: RotateCcw,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         pr.check_status !== "failure" && pr.check_status !== "error" &&
@@ -36,7 +43,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     },
     {
       title: "Waiting for Review",
-      icon: "👀",
+      icon: Eye,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         pr.check_status !== "failure" && pr.check_status !== "error" &&
@@ -47,7 +54,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     },
     {
       title: "Approved",
-      icon: "✅",
+      icon: CheckCircle,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         pr.check_status !== "failure" && pr.check_status !== "error" &&
@@ -56,12 +63,12 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     },
     {
       title: "Draft",
-      icon: "📝",
+      icon: FileEdit,
       prs: drafts,
     },
     {
       title: "Recently Merged",
-      icon: "🟣",
+      icon: GitMerge,
       prs: allPrs.filter(pr => pr.state === "merged"),
     },
   ];

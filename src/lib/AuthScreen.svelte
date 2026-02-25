@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { openUrl } from "@tauri-apps/plugin-opener";
+  import Bell from "@lucide/svelte/icons/bell";
   import type { DeviceCodeResponse } from "./types";
 
   interface Props {
@@ -48,7 +49,7 @@
           console.log("[auth] Poll result:", success);
           pollError = "";
           if (success) {
-            console.log("[auth] ✅ Authenticated!");
+            console.log("[auth] Authenticated!");
             cleanup();
             onSuccess();
           }
@@ -96,7 +97,7 @@
 
 <div class="flex flex-col items-center justify-center h-full px-8">
   <div class="flex flex-col items-center gap-2 mb-8">
-    <span class="text-3xl">🔔</span>
+    <Bell size={28} class="text-gray-400" />
     <h1 class="text-xl font-bold text-white">PR Buddy</h1>
     <p class="text-gray-500 text-sm">Stay on top of your pull requests</p>
   </div>

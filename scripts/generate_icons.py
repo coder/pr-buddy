@@ -3,130 +3,86 @@
 
 This script is intentionally idempotent. Re-running it overwrites icon assets with the
 same deterministic output.
+
+Design: Bold solid white bell on indigo rounded square. No thin strokes, no fine
+details — readable at 16×16.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 ICONS_DIR = ROOT / "src-tauri" / "icons"
 
-INDIGO_TOP = (79, 70, 229, 255)  # #4f46e5
-INDIGO_BOTTOM = (124, 58, 237, 255)  # #7c3aed
+BG_COLOR = (91, 110, 245, 255)   # #5B6EF5 — solid indigo
 WHITE = (255, 255, 255, 255)
+TRAY_WHITE = (255, 255, 255, 255) # white for macOS tray template image
 
 
-def _lerp(a: int, b: int, t: float) -> int:
-    return int(round(a + (b - a) * t))
+def _draw_bell(draw: ImageDraw.ImageDraw, size: int, fill: tuple) -> None:
+    """Draw a bold filled bell glyph centred in the canvas."""
+    s = size
 
-
-def create_gradient(size: int) -> Image.Image:
-    """Create a vertical indigo gradient with subtle lighting."""
-    column = Image.new("RGBA", (1, size))
-    draw = ImageDraw.Draw(column)
-    for y in range(size):
-        t = y / max(1, size - 1)
-        color = tuple(_lerp(INDIGO_TOP[i], INDIGO_BOTTOM[i], t) for i in range(4))
-        draw.point((0, y), fill=color)
-
-    gradient = column.resize((size, size), resample=Image.Resampling.BICUBIC)
-
-    # Add soft highlight near top-left for depth.
-    highlight = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    hdraw = ImageDraw.Draw(highlight)
-    hdraw.ellipse(
-        (
-            int(size * 0.18),
-            int(size * 0.06),
-            int(size * 0.92),
-            int(size * 0.78),
-        ),
-        fill=(255, 255, 255, 72),
-    )
-    highlight = highlight.filter(ImageFilter.GaussianBlur(radius=size * 0.08))
-
-    return Image.alpha_composite(gradient, highlight)
-
-
-def create_base_icon(size: int = 1024) -> Image.Image:
-    """Create the core icon image: rounded indigo square with white bell glyph."""
-    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    gradient = create_gradient(size)
-
-    # Rounded square background shape.
-    bg_mask = Image.new("L", (size, size), 0)
-    mdraw = ImageDraw.Draw(bg_mask)
-    inset = int(size * 0.08)
-    radius = int(size * 0.22)
-    mdraw.rounded_rectangle(
-        (inset, inset, size - inset, size - inset), radius=radius, fill=255
-    )
-    canvas.paste(gradient, (0, 0), bg_mask)
-
-    # Bell glyph, drawn with primitives so it remains crisp when downsampled.
-    draw = ImageDraw.Draw(canvas)
-
-    # Bell handle
+    # Bell handle (small rounded rect at top)
     draw.rounded_rectangle(
-        (
-            int(size * 0.46),
-            int(size * 0.18),
-            int(size * 0.54),
-            int(size * 0.27),
-        ),
-        radius=int(size * 0.025),
-        fill=WHITE,
+        (int(s * 0.44), int(s * 0.16), int(s * 0.56), int(s * 0.26)),
+        radius=int(s * 0.03),
+        fill=fill,
     )
 
-    # Dome + body
+    # Dome (top half-circle)
     draw.pieslice(
-        (
-            int(size * 0.27),
-            int(size * 0.22),
-            int(size * 0.73),
-            int(size * 0.72),
-        ),
+        (int(s * 0.25), int(s * 0.20), int(s * 0.75), int(s * 0.70)),
         180,
         360,
-        fill=WHITE,
-    )
-    draw.rounded_rectangle(
-        (
-            int(size * 0.31),
-            int(size * 0.45),
-            int(size * 0.69),
-            int(size * 0.74),
-        ),
-        radius=int(size * 0.11),
-        fill=WHITE,
+        fill=fill,
     )
 
-    # Bottom lip
-    draw.rounded_rectangle(
-        (
-            int(size * 0.24),
-            int(size * 0.67),
-            int(size * 0.76),
-            int(size * 0.76),
-        ),
-        radius=int(size * 0.04),
-        fill=WHITE,
+    # Body (fills gap below dome to the lip)
+    draw.rectangle(
+        (int(s * 0.25), int(s * 0.45), int(s * 0.75), int(s * 0.68)),
+        fill=fill,
     )
 
-    # Clapper
+    # Bottom lip (wide bar)
+    draw.rounded_rectangle(
+        (int(s * 0.20), int(s * 0.65), int(s * 0.80), int(s * 0.75)),
+        radius=int(s * 0.04),
+        fill=fill,
+    )
+
+    # Clapper (ball at bottom)
     draw.ellipse(
-        (
-            int(size * 0.43),
-            int(size * 0.73),
-            int(size * 0.57),
-            int(size * 0.88),
-        ),
-        fill=WHITE,
+        (int(s * 0.42), int(s * 0.73), int(s * 0.58), int(s * 0.87)),
+        fill=fill,
     )
 
+
+def create_app_icon(size: int = 1024) -> Image.Image:
+    """Solid indigo rounded square with a white filled bell."""
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+
+    inset = int(size * 0.08)
+    radius = int(size * 0.22)
+    draw.rounded_rectangle(
+        (inset, inset, size - inset, size - inset),
+        radius=radius,
+        fill=BG_COLOR,
+    )
+
+    _draw_bell(draw, size, WHITE)
+    return canvas
+
+
+def create_tray_icon(size: int = 64) -> Image.Image:
+    """White filled bell on transparent background (macOS template image)."""
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+    _draw_bell(draw, size, TRAY_WHITE)
     return canvas
 
 
@@ -138,26 +94,27 @@ def save_png(image: Image.Image, path: Path, size: int) -> None:
 def main() -> None:
     ICONS_DIR.mkdir(parents=True, exist_ok=True)
 
-    base = create_base_icon(1024)
+    app = create_app_icon(1024)
+    tray = create_tray_icon(64)
 
-    # PNG app + tray icons
-    save_png(base, ICONS_DIR / "32x32.png", 32)
-    save_png(base, ICONS_DIR / "128x128.png", 128)
-    save_png(base, ICONS_DIR / "128x128@2x.png", 256)
-    save_png(base, ICONS_DIR / "tray-default.png", 32)
+    # PNG app icons
+    save_png(app, ICONS_DIR / "32x32.png", 32)
+    save_png(app, ICONS_DIR / "128x128.png", 128)
+    save_png(app, ICONS_DIR / "128x128@2x.png", 256)
+    save_png(app, ICONS_DIR / "icon.png", 512)
 
-    # Optional convenience PNG for docs/manual checks.
-    save_png(base, ICONS_DIR / "icon.png", 512)
+    # Tray icon (transparent background, white bell — macOS template image)
+    save_png(tray, ICONS_DIR / "tray-default.png", 32)
 
     # Windows ICO (multi-resolution)
-    base.save(
+    app.save(
         ICONS_DIR / "icon.ico",
         format="ICO",
         sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
     )
 
     # macOS ICNS
-    base.save(ICONS_DIR / "icon.icns", format="ICNS")
+    app.save(ICONS_DIR / "icon.icns", format="ICNS")
 
     # Keep directory clean once real assets exist.
     gitkeep = ICONS_DIR / ".gitkeep"

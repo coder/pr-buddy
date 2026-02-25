@@ -6,8 +6,8 @@ mod notifications;
 mod poller;
 mod state;
 
-use tauri::Manager;
 use tauri::tray::TrayIconBuilder;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,6 +25,15 @@ pub fn run() {
             .build(),
         )
         .manage(state::AppState::new())
+        .invoke_handler(tauri::generate_handler![
+            auth::start_device_flow_cmd,
+            auth::poll_for_token_cmd,
+            auth::logout_cmd,
+            auth::is_authenticated_cmd,
+            github::get_pull_requests_cmd,
+            github::get_user_info_cmd,
+            github::refresh_prs_cmd
+        ])
         .setup(|app| {
             // Build initial menu based on auth state
             let state = app.state::<state::AppState>();
@@ -37,8 +46,14 @@ pub fn run() {
             };
 
             // Build system tray — left-click opens native menu
+            let tray_icon = tauri::image::Image::from_bytes(
+                include_bytes!("../icons/tray-default.png"),
+            )
+            .expect("failed to load tray icon");
+
             let tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
+                .icon_as_template(true)
                 .tooltip("PR Buddy")
                 .menu(&initial_menu)
                 .show_menu_on_left_click(true)
@@ -49,6 +64,15 @@ pub fn run() {
 
             // Store tray handle so poller can update the menu
             *state.tray.lock().unwrap() = Some(tray);
+
+            // Request notification permission (triggers macOS permission dialog)
+            {
+                use tauri_plugin_notification::NotificationExt;
+                match app.notification().request_permission() {
+                    Ok(state) => eprintln!("[notifications] Permission state: {:?}", state),
+                    Err(e) => eprintln!("[notifications] Failed to request permission: {}", e),
+                }
+            }
 
             #[cfg(target_os = "macos")]
             {
