@@ -5,7 +5,6 @@ use crate::models::{CheckStatus, PrState, PullRequest};
 
 struct PrSection {
     title: String,
-    icon: &'static str,
     prs: Vec<PullRequest>,
 }
 
@@ -25,7 +24,6 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
     vec![
         PrSection {
             title: "In Merge Queue".into(),
-            icon: "🚀",
             prs: non_draft_open
                 .iter()
                 .filter(|pr| pr.merge_queue_info.is_some())
@@ -34,7 +32,6 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
         },
         PrSection {
             title: "Checks Failing".into(),
-            icon: "❌",
             prs: non_draft_open
                 .iter()
                 .filter(|pr| {
@@ -47,7 +44,6 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
         },
         PrSection {
             title: "Changes Requested".into(),
-            icon: "🔄",
             prs: non_draft_open
                 .iter()
                 .filter(|pr| {
@@ -61,7 +57,6 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
         },
         PrSection {
             title: "Waiting for Review".into(),
-            icon: "👀",
             prs: non_draft_open
                 .iter()
                 .filter(|pr| {
@@ -76,7 +71,6 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
         },
         PrSection {
             title: "Approved".into(),
-            icon: "✅",
             prs: non_draft_open
                 .iter()
                 .filter(|pr| {
@@ -90,12 +84,10 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
         },
         PrSection {
             title: "Draft".into(),
-            icon: "📝",
             prs: drafts,
         },
         PrSection {
             title: "Recently Merged".into(),
-            icon: "🟣",
             prs: all_prs
                 .iter()
                 .filter(|pr| pr.state == PrState::Merged)
@@ -123,7 +115,7 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
         first = false;
 
         // Section header (disabled)
-        let header_text = format!("{} {} ({})", section.icon, section.title, section.prs.len());
+        let header_text = format!("{} ({})", section.title, section.prs.len());
         let header = MenuItem::with_id(
             app,
             &format!("header_{}", section.title),
@@ -136,7 +128,12 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
         // PR items (max 5 per section)
         let show_count = section.prs.len().min(5);
         for pr in &section.prs[..show_count] {
-            let label = format!("  #{} {}", pr.number, truncate(&pr.title, 45));
+            let label = format!(
+                "  {} #{} — {}",
+                pr.repository,
+                pr.number,
+                truncate(&pr.title, 38)
+            );
             let item = MenuItem::with_id(
                 app,
                 &format!("pr_{}", pr.id),

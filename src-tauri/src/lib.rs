@@ -6,8 +6,8 @@ mod notifications;
 mod poller;
 mod state;
 
+use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use tauri::Manager;
-use tauri::tray::TrayIconBuilder;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,6 +25,15 @@ pub fn run() {
             .build(),
         )
         .manage(state::AppState::new())
+        .invoke_handler(tauri::generate_handler![
+            auth::start_device_flow_cmd,
+            auth::poll_for_token_cmd,
+            auth::logout_cmd,
+            auth::is_authenticated_cmd,
+            github::get_pull_requests_cmd,
+            github::get_user_info_cmd,
+            github::refresh_prs_cmd
+        ])
         .setup(|app| {
             // Build initial menu based on auth state
             let state = app.state::<state::AppState>();
@@ -36,12 +45,29 @@ pub fn run() {
                 menu::build_auth_menu(app.handle())?
             };
 
-            // Build system tray — left-click opens native menu
+            // Build system tray — left-click toggles webview panel
             let tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("PR Buddy")
                 .menu(&initial_menu)
-                .show_menu_on_left_click(true)
+                .show_menu_on_left_click(false)
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                            } else {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                    }
+                })
                 .on_menu_event(|app, event| {
                     handle_menu_event(app, event.id.as_ref());
                 })
