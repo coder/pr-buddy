@@ -6,7 +6,7 @@ mod notifications;
 mod poller;
 mod state;
 
-use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
+use tauri::tray::TrayIconBuilder;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -45,29 +45,17 @@ pub fn run() {
                 menu::build_auth_menu(app.handle())?
             };
 
-            // Build system tray — left-click toggles webview panel
+            // Build system tray — left-click opens native menu
+            let tray_icon = tauri::image::Image::from_bytes(
+                include_bytes!("../icons/tray-default.png"),
+            )
+            .expect("failed to load tray icon");
+
             let tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
                 .tooltip("PR Buddy")
                 .menu(&initial_menu)
-                .show_menu_on_left_click(false)
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
-                        }
-                    }
-                })
+                .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| {
                     handle_menu_event(app, event.id.as_ref());
                 })
@@ -75,6 +63,15 @@ pub fn run() {
 
             // Store tray handle so poller can update the menu
             *state.tray.lock().unwrap() = Some(tray);
+
+            // Request notification permission (triggers macOS permission dialog)
+            {
+                use tauri_plugin_notification::NotificationExt;
+                match app.notification().request_permission() {
+                    Ok(state) => eprintln!("[notifications] Permission state: {:?}", state),
+                    Err(e) => eprintln!("[notifications] Failed to request permission: {}", e),
+                }
+            }
 
             #[cfg(target_os = "macos")]
             {
