@@ -7,7 +7,7 @@ mod poller;
 mod state;
 
 use tauri::tray::TrayIconBuilder;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -117,6 +117,8 @@ pub fn run() {
                                             }
                                         }
                                     }
+                                    // Notify the frontend so it switches to the login screen
+                                    let _ = app_handle.emit("auth-cleared", ());
                                 } else {
                                     eprintln!("[setup] Token changed during validation, keeping new session");
                                 }

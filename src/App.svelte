@@ -14,6 +14,7 @@
   let checkingAuth = $state(true);
 
   let unlisten: (() => void) | undefined;
+  let unlistenAuth: (() => void) | undefined;
 
   async function init() {
     try {
@@ -79,10 +80,19 @@
     }).then((fn) => {
       unlisten = fn;
     });
+    listen("auth-cleared", () => {
+      isAuthed = false;
+      prList = [];
+      userInfo = null;
+      lastUpdated = null;
+    }).then((fn) => {
+      unlistenAuth = fn;
+    });
   });
 
   onDestroy(() => {
     unlisten?.();
+    unlistenAuth?.();
   });
 </script>
 
