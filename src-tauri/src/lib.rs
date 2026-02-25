@@ -16,11 +16,9 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(
             tauri_plugin_stronghold::Builder::new(|password| {
-                use std::hash::{DefaultHasher, Hasher};
-                let mut hasher = DefaultHasher::new();
-                hasher.write(password.as_bytes());
-                let hash = hasher.finish();
-                hash.to_le_bytes().to_vec()
+                use sha2::{Sha256, Digest};
+                let hash = Sha256::digest(password.as_bytes());
+                hash.to_vec()
             })
             .build(),
         )
