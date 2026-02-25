@@ -3,6 +3,8 @@ import Rocket from "@lucide/svelte/icons/rocket";
 import XCircle from "@lucide/svelte/icons/x-circle";
 import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
 import Eye from "@lucide/svelte/icons/eye";
+import CircleDot from "@lucide/svelte/icons/circle-dot";
+import Loader from "@lucide/svelte/icons/loader";
 import CheckCircle from "@lucide/svelte/icons/check-circle";
 import FileEdit from "@lucide/svelte/icons/file-edit";
 import GitMerge from "@lucide/svelte/icons/git-merge";
@@ -42,11 +44,32 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       ),
     },
     {
+      title: "Mergeable",
+      icon: CircleDot,
+      prs: nonDraftOpen.filter(pr =>
+        pr.merge_queue_info == null &&
+        pr.check_status === "success" &&
+        pr.review_decision !== "CHANGES_REQUESTED" &&
+        pr.review_decision !== "APPROVED" &&
+        (pr.review_decision === "REVIEW_REQUIRED" || pr.review_decision == null)
+      ),
+    },
+    {
+      title: "Checks Running",
+      icon: Loader,
+      prs: nonDraftOpen.filter(pr =>
+        pr.merge_queue_info == null &&
+        pr.check_status === "pending" &&
+        pr.review_decision !== "CHANGES_REQUESTED" &&
+        pr.review_decision !== "APPROVED"
+      ),
+    },
+    {
       title: "Waiting for Review",
       icon: Eye,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
-        pr.check_status !== "failure" && pr.check_status !== "error" &&
+        pr.check_status === "none" &&
         pr.review_decision !== "CHANGES_REQUESTED" &&
         pr.review_decision !== "APPROVED" &&
         (pr.review_decision === "REVIEW_REQUIRED" || pr.review_decision == null)

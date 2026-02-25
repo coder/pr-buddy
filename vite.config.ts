@@ -14,6 +14,8 @@ export default defineConfig({
       "@lucide/svelte/icons/x-circle",
       "@lucide/svelte/icons/rotate-ccw",
       "@lucide/svelte/icons/eye",
+      "@lucide/svelte/icons/circle-dot",
+      "@lucide/svelte/icons/loader",
       "@lucide/svelte/icons/check-circle",
       "@lucide/svelte/icons/file-edit",
       "@lucide/svelte/icons/git-merge",
