@@ -1,5 +1,11 @@
 import { writable } from "svelte/store";
-import { Rocket, XCircle, RotateCcw, Eye, CheckCircle, FileEdit, GitMerge } from "lucide-svelte";
+import Rocket from "lucide-svelte/icons/rocket";
+import XCircle from "lucide-svelte/icons/x-circle";
+import RotateCcw from "lucide-svelte/icons/rotate-ccw";
+import Eye from "lucide-svelte/icons/eye";
+import CheckCircle from "lucide-svelte/icons/check-circle";
+import FileEdit from "lucide-svelte/icons/file-edit";
+import GitMerge from "lucide-svelte/icons/git-merge";
 import type { PullRequest, GitHubUser, PrSection } from "./types";
 
 export const prs = writable<PullRequest[]>([]);

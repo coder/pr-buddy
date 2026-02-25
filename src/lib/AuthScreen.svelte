@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { openUrl } from "@tauri-apps/plugin-opener";
-  import { Bell } from "lucide-svelte";
+  import Bell from "lucide-svelte/icons/bell";
   import type { DeviceCodeResponse } from "./types";
 
   interface Props {

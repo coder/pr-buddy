@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { Bell, Inbox, PartyPopper, RefreshCw, LogOut } from "lucide-svelte";
+  import Bell from "lucide-svelte/icons/bell";
+  import Inbox from "lucide-svelte/icons/inbox";
+  import PartyPopper from "lucide-svelte/icons/party-popper";
+  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import LogOut from "lucide-svelte/icons/log-out";
   import type { PullRequest, GitHubUser } from "./types";
   import { groupPrs } from "./stores";
   import PRSection from "./PRSection.svelte";
