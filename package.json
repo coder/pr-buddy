@@ -16,7 +16,8 @@
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-notification": "^2.3.3",
     "@tauri-apps/plugin-opener": "^2.5.3",
-    "@tauri-apps/plugin-stronghold": "^2.3.1"
+    "@tauri-apps/plugin-stronghold": "^2.3.1",
+    "lucide-svelte": "^0.575.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
