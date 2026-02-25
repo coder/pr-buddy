@@ -186,6 +186,22 @@ pub async fn fetch_user_info(token: &str) -> Result<GitHubUser, AuthError> {
     })
 }
 
+/// Validate a token by making a lightweight API call.
+/// Returns true only if the token is confirmed valid (200 OK).
+/// Returns false for auth errors (401/403). Returns None for
+/// network errors (so we don't clear a good token when offline).
+pub async fn validate_token(token: &str) -> Option<bool> {
+    let client = Client::new();
+    let response = client
+        .get("https://api.github.com/user")
+        .header("Authorization", format!("Bearer {}", token))
+        .header("User-Agent", "PR-Buddy")
+        .send()
+        .await
+        .ok()?; // Network error → None (don't clear token)
+    Some(response.status().is_success())
+}
+
 #[tauri::command]
 pub async fn get_pull_requests_cmd(
     state: State<'_, AppState>,

@@ -51,7 +51,8 @@ fn save_token_to_disk(app: &tauri::AppHandle, token: &str) {
                 return;
             }
             let path = dir.join(TOKEN_FILE);
-            if let Err(e) = std::fs::write(&path, token) {
+            // Write with restrictive permissions (owner-only on Unix)
+            if let Err(e) = write_token_file(&path, token) {
                 eprintln!("[auth] Failed to save token to disk: {}", e);
             } else {
                 eprintln!("[auth] Token persisted to disk");
@@ -59,6 +60,24 @@ fn save_token_to_disk(app: &tauri::AppHandle, token: &str) {
         }
         Err(e) => eprintln!("[auth] Failed to resolve app data dir: {}", e),
     }
+}
+
+#[cfg(unix)]
+fn write_token_file(path: &std::path::Path, token: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(0o600)
+        .open(path)?;
+    file.write_all(token.as_bytes())
+}
+
+#[cfg(not(unix))]
+fn write_token_file(path: &std::path::Path, token: &str) -> std::io::Result<()> {
+    std::fs::write(path, token)
 }
 
 pub(crate) fn load_token_from_disk(app: &tauri::AppHandle) -> Option<String> {
@@ -73,7 +92,7 @@ pub(crate) fn load_token_from_disk(app: &tauri::AppHandle) -> Option<String> {
     }
 }
 
-fn delete_token_from_disk(app: &tauri::AppHandle) {
+pub(crate) fn delete_token_from_disk(app: &tauri::AppHandle) {
     if let Ok(dir) = app.path().app_data_dir() {
         let path = dir.join(TOKEN_FILE);
         let _ = std::fs::remove_file(&path);

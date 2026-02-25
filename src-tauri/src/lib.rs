@@ -86,6 +86,45 @@ pub fn run() {
 
             poller::start_polling(app.handle().clone());
 
+            // Validate restored token asynchronously (don't block startup).
+            // If the token is revoked/invalid, clear it and fall back to sign-in.
+            if is_authed {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let token = {
+                        let state = app_handle.state::<state::AppState>();
+                        let val = state.token.lock().unwrap().clone();
+                        val
+                    };
+                    if let Some(token) = token {
+                        match github::validate_token(&token).await {
+                            Some(false) => {
+                                // Token is confirmed invalid (401/403) — clear it
+                                eprintln!("[setup] Saved token is invalid, clearing session");
+                                let state = app_handle.state::<state::AppState>();
+                                *state.token.lock().unwrap() = None;
+                                auth::delete_token_from_disk(&app_handle);
+                                {
+                                    let tray_guard = state.tray.lock().unwrap();
+                                    if let Some(tray) = tray_guard.as_ref() {
+                                        if let Ok(m) = menu::build_auth_menu(&app_handle) {
+                                            let _ = tray.set_menu(Some(m));
+                                        }
+                                    }
+                                }
+                            }
+                            Some(true) => {
+                                eprintln!("[setup] Saved token validated successfully");
+                            }
+                            None => {
+                                // Network error — keep the token, poller will retry
+                                eprintln!("[setup] Could not validate token (offline?), keeping session");
+                            }
+                        }
+                    }
+                });
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())
