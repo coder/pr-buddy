@@ -6,6 +6,23 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig({
   plugins: [svelte()],
   clearScreen: false,
+  optimizeDeps: {
+    // Pre-bundle lucide icons so Vite resolves the "svelte" export condition in dev
+    include: [
+      "@lucide/svelte/icons/bell",
+      "@lucide/svelte/icons/rocket",
+      "@lucide/svelte/icons/x-circle",
+      "@lucide/svelte/icons/rotate-ccw",
+      "@lucide/svelte/icons/eye",
+      "@lucide/svelte/icons/check-circle",
+      "@lucide/svelte/icons/file-edit",
+      "@lucide/svelte/icons/git-merge",
+      "@lucide/svelte/icons/inbox",
+      "@lucide/svelte/icons/party-popper",
+      "@lucide/svelte/icons/refresh-cw",
+      "@lucide/svelte/icons/log-out",
+    ],
+  },
   server: {
     port: 1420,
     strictPort: true,
