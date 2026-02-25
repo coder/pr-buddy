@@ -38,9 +38,13 @@
       "icons/icon.ico"
     ],
     "linux": {
+      "deb": {
+        "depends": ["libayatana-appindicator3-1"]
+      },
       "rpm": {
         "epoch": 0,
-        "release": "1"
+        "release": "1",
+        "depends": ["libayatana-appindicator-gtk3"]
       }
     }
   },

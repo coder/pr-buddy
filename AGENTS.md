@@ -103,6 +103,18 @@ All commands are registered in `lib.rs` via `invoke_handler`. Frontend calls the
 |-------|-----------|---------|
 | `prs-updated` | Rust → Frontend | `PullRequest[]` |
 
+### Linux Prerequisites
+
+The system tray requires `libayatana-appindicator3`. Install it before running `make dev` or the release binary:
+
+| Distro | Command |
+|--------|---------|
+| Arch / Manjaro | `sudo pacman -S libayatana-appindicator` |
+| Ubuntu / Debian | `sudo apt install libayatana-appindicator3-dev` |
+| Fedora | `sudo dnf install libayatana-appindicator-gtk3` |
+
+The `.deb` and `.rpm` bundles declare this as a package dependency so it installs automatically when users install through those package formats. Arch/pacman users must install it manually.
+
 ## Essential Commands
 
 ```bash
