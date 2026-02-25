@@ -35,6 +35,13 @@ pub fn run() {
             github::refresh_prs_cmd
         ])
         .setup(|app| {
+            // Restore saved auth token from disk (if any)
+            if let Some(saved_token) = auth::load_token_from_disk(app.handle()) {
+                let state = app.state::<state::AppState>();
+                *state.token.lock().unwrap() = Some(saved_token);
+                eprintln!("[setup] Restored auth session from disk");
+            }
+
             // Build initial menu based on auth state
             let state = app.state::<state::AppState>();
             let is_authed = state.token.lock().unwrap().is_some();
@@ -163,7 +170,7 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                             }
 
                             let state = app.state::<state::AppState>();
-                            match auth::poll_for_token(&resp.device_code, &state).await {
+                            match auth::poll_for_token(&resp.device_code, &state, &app).await {
                                 Ok(true) => {
                                     eprintln!("[auth] ✅ Authenticated via menu");
                                     let token = {
