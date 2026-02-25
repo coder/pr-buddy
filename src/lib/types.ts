@@ -1,3 +1,5 @@
+import type { Component, ComponentType, SvelteComponent } from "svelte";
+
 export type PrState = "open" | "closed" | "merged";
 export type CheckStatus = "pending" | "success" | "failure" | "error" | "none";
 
@@ -46,8 +48,12 @@ export interface DeviceCodeResponse {
   interval: number;
 }
 
+export type IconComponent =
+  | Component<{ size?: number | string; class?: string }>
+  | ComponentType<SvelteComponent>;
+
 export interface PrSection {
   title: string;
-  icon: string;
+  icon: IconComponent;
   prs: PullRequest[];
 }

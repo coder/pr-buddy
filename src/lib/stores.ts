@@ -1,4 +1,5 @@
 import { writable } from "svelte/store";
+import { Rocket, XCircle, RotateCcw, Eye, CheckCircle, FileEdit, GitMerge } from "lucide-svelte";
 import type { PullRequest, GitHubUser, PrSection } from "./types";
 
 export const prs = writable<PullRequest[]>([]);
@@ -14,12 +15,12 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
   const sections: PrSection[] = [
     {
       title: "In Merge Queue",
-      icon: "🚀",
+      icon: Rocket,
       prs: nonDraftOpen.filter(pr => pr.merge_queue_info != null),
     },
     {
       title: "Checks Failing",
-      icon: "❌",
+      icon: XCircle,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         (pr.check_status === "failure" || pr.check_status === "error")
@@ -27,7 +28,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     },
     {
       title: "Changes Requested",
-      icon: "🔄",
+      icon: RotateCcw,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         pr.check_status !== "failure" && pr.check_status !== "error" &&
@@ -36,7 +37,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     },
     {
       title: "Waiting for Review",
-      icon: "👀",
+      icon: Eye,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         pr.check_status !== "failure" && pr.check_status !== "error" &&
@@ -47,7 +48,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     },
     {
       title: "Approved",
-      icon: "✅",
+      icon: CheckCircle,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         pr.check_status !== "failure" && pr.check_status !== "error" &&
@@ -56,12 +57,12 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     },
     {
       title: "Draft",
-      icon: "📝",
+      icon: FileEdit,
       prs: drafts,
     },
     {
       title: "Recently Merged",
-      icon: "🟣",
+      icon: GitMerge,
       prs: allPrs.filter(pr => pr.state === "merged"),
     },
   ];

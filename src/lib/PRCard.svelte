@@ -8,9 +8,7 @@
   }
   let { pr }: Props = $props();
 
-  let repoShort = $derived(pr.repository.includes("/")
-    ? pr.repository.split("/")[1]
-    : pr.repository);
+  let repoDisplay = $derived(`${pr.owner}/${pr.repository}`);
 
   async function openPr() {
     await openUrl(pr.url);
@@ -29,7 +27,7 @@
       {pr.title}
     </p>
     <div class="flex items-center gap-1.5 mt-0.5">
-      <span class="text-[11px] text-gray-600">{repoShort}</span>
+      <span class="text-[11px] text-gray-600">{repoDisplay}</span>
       <span class="text-[11px] text-gray-700">·</span>
       <span class="text-[11px] text-gray-600">#{pr.number}</span>
       {#if pr.additions > 0 || pr.deletions > 0}
