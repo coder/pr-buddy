@@ -84,20 +84,30 @@ pub fn start_polling(app_handle: AppHandle) {
                         // Check if this is an auth failure (revoked token)
                         match crate::github::validate_token(&token).await {
                             Some(false) => {
-                                // Token is confirmed invalid — clear session
-                                eprintln!("[poller] Token is invalid, clearing session");
+                                // Token is confirmed invalid — clear session,
+                                // but only if it hasn't been replaced by a fresh login.
                                 let state = app_handle.state::<AppState>();
-                                *state.token.lock().unwrap() = None;
-                                auth::delete_token_from_disk(&app_handle);
-                                {
-                                    let tray_guard = state.tray.lock().unwrap();
-                                    if let Some(tray) = tray_guard.as_ref() {
-                                        if let Ok(m) = crate::menu::build_auth_menu(&app_handle) {
-                                            let _ = tray.set_menu(Some(m));
+                                let mut current = state.token.lock().unwrap();
+                                if current.as_deref() == Some(token.as_str()) {
+                                    eprintln!("[poller] Token is invalid, clearing session");
+                                    *current = None;
+                                    drop(current);
+                                    auth::delete_token_from_disk(&app_handle);
+                                    // Clear cached PR state to avoid stale data on re-login
+                                    state.prs.lock().unwrap().clear();
+                                    state.previous_prs.lock().unwrap().clear();
+                                    {
+                                        let tray_guard = state.tray.lock().unwrap();
+                                        if let Some(tray) = tray_guard.as_ref() {
+                                            if let Ok(m) = crate::menu::build_auth_menu(&app_handle) {
+                                                let _ = tray.set_menu(Some(m));
+                                            }
                                         }
                                     }
+                                    let _ = app_handle.emit("auth-cleared", ());
+                                } else {
+                                    eprintln!("[poller] Token changed during validation, keeping new session");
                                 }
-                                let _ = app_handle.emit("auth-cleared", ());
                             }
                             _ => {
                                 // Network/transient error — keep token, retry later
