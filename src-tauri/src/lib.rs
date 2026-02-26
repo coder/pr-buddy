@@ -269,11 +269,28 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
             }
         }
 
-        id if id.starts_with("see_all_") => {
+        "see_all" => {
             use tauri_plugin_opener::OpenerExt;
             let _ = app
                 .opener()
                 .open_url("https://github.com/pulls", None::<&str>);
+        }
+
+        "logout" => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let state = app.state::<state::AppState>();
+                *state.token.lock().unwrap() = None;
+                *state.prs.lock().unwrap() = vec![];
+                auth::delete_token_from_disk(&app);
+                let tray_guard = state.tray.lock().unwrap();
+                if let Some(tray) = tray_guard.as_ref() {
+                    if let Ok(m) = menu::build_auth_menu(&app) {
+                        let _ = tray.set_menu(Some(m));
+                    }
+                }
+                let _ = app.emit("auth-cleared", ());
+            });
         }
 
         _ => {}
