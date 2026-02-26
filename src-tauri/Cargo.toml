@@ -18,3 +18,4 @@ tokio = { version = "1", features = ["full"] }
 chrono = { version = "0.4", features = ["serde"] }
 arboard = { version = "3", features = ["wayland-data-control"] }
 sha2 = "0.10"
+notify-rust = "=4.12.0"

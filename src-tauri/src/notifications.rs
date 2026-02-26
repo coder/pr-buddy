@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use tauri::AppHandle;
-use tauri_plugin_notification::NotificationExt;
 
 use crate::models::{CheckStatus, PrEvent, PrState, PullRequest};
 
@@ -44,30 +43,69 @@ pub fn diff_pr_states(
     events
 }
 
+/// Extract the PR URL from any event variant.
+fn pr_url(event: &PrEvent) -> &str {
+    match event {
+        PrEvent::ChecksFailed(pr)
+        | PrEvent::RemovedFromMergeQueue(pr)
+        | PrEvent::Merged(pr)
+        | PrEvent::ChecksPassed(pr) => &pr.url,
+    }
+}
+
 pub fn send_notification(app: &AppHandle, event: &PrEvent) {
     let (title, body) = match event {
         PrEvent::ChecksFailed(pr) => (
-            format!("❌ Checks Failed"),
+            "❌ Checks Failed".to_string(),
             format!("{} #{} — {}", pr.repository, pr.number, pr.title),
         ),
         PrEvent::RemovedFromMergeQueue(pr) => (
-            format!("🚫 Removed from Merge Queue"),
+            "🚫 Removed from Merge Queue".to_string(),
             format!("{} #{} — {}", pr.repository, pr.number, pr.title),
         ),
         PrEvent::Merged(pr) => (
-            format!("🎉 PR Merged"),
+            "🎉 PR Merged".to_string(),
             format!("{} #{} — {}", pr.repository, pr.number, pr.title),
         ),
         PrEvent::ChecksPassed(pr) => (
-            format!("✅ Checks Passed"),
+            "✅ Checks Passed".to_string(),
             format!("{} #{} — {}", pr.repository, pr.number, pr.title),
         ),
     };
 
-    let _ = app
-        .notification()
-        .builder()
-        .title(&title)
-        .body(&body)
-        .show();
+    let url = pr_url(event).to_string();
+    let app = app.clone();
+
+    // Spawn a thread so wait_for_action can block without tying up the async runtime.
+    std::thread::spawn(move || {
+        #[cfg(target_os = "macos")]
+        {
+            let id = &app.config().identifier;
+            let _ = notify_rust::set_application(if tauri::is_dev() {
+                "com.apple.Terminal"
+            } else {
+                id
+            });
+        }
+
+        let mut n = notify_rust::Notification::new();
+        n.summary(&title)
+            .body(&body)
+            .action("default", "Open PR");
+
+        match n.show() {
+            Ok(handle) => {
+                // Blocks until the notification is clicked or dismissed.
+                handle.wait_for_action(|action| {
+                    if action == "default" {
+                        use tauri_plugin_opener::OpenerExt;
+                        let _ = app.opener().open_url(&url, None::<&str>);
+                    }
+                });
+            }
+            Err(e) => {
+                eprintln!("[notifications] Failed to show notification: {}", e);
+            }
+        }
+    });
 }
