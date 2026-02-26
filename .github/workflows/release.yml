@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write # GCP workload identity for Windows code signing
 
 jobs:
   release:
@@ -59,16 +60,62 @@ jobs:
 
       - run: npm ci
 
+      # --- macOS code signing & notarization ---
+      - name: Setup macOS notarization credentials
+        if: startsWith(matrix.platform, 'macos')
+        shell: bash
+        run: |
+          if [ -z "$AC_APIKEY_P8_BASE64" ]; then
+            echo "No Apple API key configured — skipping notarization setup"
+            exit 0
+          fi
+          echo "$AC_APIKEY_P8_BASE64" | base64 -D > /tmp/AuthKey.p8
+          echo "APPLE_API_KEY=/tmp/AuthKey.p8" >> "$GITHUB_ENV"
+          echo "APPLE_API_KEY_ID=$AC_APIKEY_ID" >> "$GITHUB_ENV"
+          echo "APPLE_API_ISSUER=$AC_APIKEY_ISSUER_ID" >> "$GITHUB_ENV"
+          echo "✅ Notarization credentials configured"
+        env:
+          AC_APIKEY_P8_BASE64: ${{ secrets.AC_APIKEY_P8_BASE64 }}
+          AC_APIKEY_ID: ${{ secrets.AC_APIKEY_ID }}
+          AC_APIKEY_ISSUER_ID: ${{ secrets.AC_APIKEY_ISSUER_ID }}
+
+      # --- Windows EV code signing via GCP Cloud KMS ---
+      - name: Setup Windows code signing
+        id: windows_signing
+        if: matrix.platform == 'windows-latest'
+        uses: ./.github/actions/setup-windows-signing
+        with:
+          ev_signing_cert: ${{ secrets.EV_SIGNING_CERT }}
+          gcp_workload_id_provider: ${{ vars.GCP_WORKLOAD_ID_PROVIDER }}
+          gcp_service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Tauri Windows signCommand
+        if: matrix.platform == 'windows-latest' && env.JSIGN_PATH != ''
+        shell: bash
+        run: |
+          cat > signing.conf.json << 'EOF'
+          {
+            "bundle": {
+              "windows": {
+                "signCommand": "powershell -File scripts/sign-windows.ps1 \"%1\""
+              }
+            }
+          }
+          EOF
+          echo "SIGNING_ARGS=--config signing.conf.json" >> "$GITHUB_ENV"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # macOS signing (optional — skipped if not set)
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Windows EV signing env vars (used by scripts/sign-windows.ps1)
+          EV_KEYSTORE: ${{ vars.EV_KEYSTORE }}
+          EV_KEY: ${{ vars.EV_KEY }}
+          EV_TSA_URL: ${{ vars.EV_TSA_URL }}
+          GCLOUD_ACCESS_TOKEN: ${{ steps.windows_signing.outputs.gcloud_access_token }}
           # Updater signing (optional)
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -78,4 +125,4 @@ jobs:
           releaseBody: "See the assets below to download and install this version."
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} ${{ env.SIGNING_ARGS }}
