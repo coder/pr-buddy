@@ -188,9 +188,9 @@ pub async fn fetch_user_info(token: &str) -> Result<GitHubUser, AuthError> {
 
 /// Validate a token by making a lightweight API call.
 /// Returns true only if the token is confirmed valid (200 OK).
-/// Returns false for definitive auth failures (401/403).
-/// Returns None for network errors or transient server issues
-/// (429/5xx) so we don't clear a good token prematurely.
+/// Returns false only for a definitive 401 Unauthorized.
+/// Returns None for network errors or any other status (403 can
+/// mean rate-limiting/abuse, not just bad credentials).
 pub async fn validate_token(token: &str) -> Option<bool> {
     let client = Client::new();
     let response = client
@@ -203,10 +203,10 @@ pub async fn validate_token(token: &str) -> Option<bool> {
     let status = response.status();
     if status.is_success() {
         Some(true)
-    } else if status.as_u16() == 401 || status.as_u16() == 403 {
+    } else if status.as_u16() == 401 {
         Some(false)
     } else {
-        // Transient error (429, 5xx, etc.) — don't invalidate
+        // 403 (rate limit/abuse), 429, 5xx, etc. — don't invalidate
         eprintln!("[auth] Token validation got HTTP {}, treating as transient", status);
         None
     }

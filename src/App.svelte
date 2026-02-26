@@ -73,7 +73,8 @@
   }
 
   onMount(() => {
-    void init();
+    // Register event listeners before init() so we don't miss
+    // an auth-cleared event from fast startup token validation.
     listen<PullRequest[]>("prs-updated", (event) => {
       prList = event.payload;
       lastUpdated = new Date();
@@ -88,6 +89,7 @@
     }).then((fn) => {
       unlistenAuth = fn;
     });
+    void init();
   });
 
   onDestroy(() => {
