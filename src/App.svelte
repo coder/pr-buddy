@@ -72,24 +72,24 @@
     await loadData();
   }
 
-  onMount(() => {
-    // Register event listeners before init() so we don't miss
+  async function setup() {
+    // Await listener registration before init() so we don't miss
     // an auth-cleared event from fast startup token validation.
-    listen<PullRequest[]>("prs-updated", (event) => {
+    unlisten = await listen<PullRequest[]>("prs-updated", (event) => {
       prList = event.payload;
       lastUpdated = new Date();
-    }).then((fn) => {
-      unlisten = fn;
     });
-    listen("auth-cleared", () => {
+    unlistenAuth = await listen("auth-cleared", () => {
       isAuthed = false;
       prList = [];
       userInfo = null;
       lastUpdated = null;
-    }).then((fn) => {
-      unlistenAuth = fn;
     });
-    void init();
+    await init();
+  }
+
+  onMount(() => {
+    void setup();
   });
 
   onDestroy(() => {
