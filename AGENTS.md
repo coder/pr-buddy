@@ -103,6 +103,18 @@ All commands are registered in `lib.rs` via `invoke_handler`. Frontend calls the
 |-------|-----------|---------|
 | `prs-updated` | Rust → Frontend | `PullRequest[]` |
 
+### Linux Prerequisites
+
+The system tray requires `libayatana-appindicator3`. Install it before running `make dev` or the release binary:
+
+| Distro | Command |
+|--------|---------|
+| Arch / Manjaro | `sudo pacman -S libayatana-appindicator` |
+| Ubuntu / Debian | `sudo apt install libayatana-appindicator3-dev` |
+| Fedora | `sudo dnf install libayatana-appindicator-gtk3` |
+
+The `.deb` and `.rpm` bundles declare this as a package dependency so it installs automatically when users install through those package formats. Arch/pacman users must install it manually.
+
 ## Essential Commands
 
 ```bash
@@ -284,3 +296,14 @@ Common prefixes: `feat`, `fix`, `chore`, `refactor`, `docs`.
 - Summarise what changed and why.
 - List files modified by category (Rust backend / Svelte frontend / config).
 - Note any build verification results (`npm run check`, `npm run vite:build`, `cargo check`).
+
+### Codex Review Comments
+
+Every PR with Codex reviews enabled must have **zero unresolved review comments** before merging. Follow this workflow:
+
+1. After pushing, poll for new Codex review comments (`gh api repos/{owner}/{repo}/pulls/{number}/comments`).
+2. For each new comment, fix the issue in code, commit, and push.
+3. Reply to each comment explaining the fix, then resolve the review thread via the GraphQL `resolveReviewThread` mutation.
+4. Repeat: each push may trigger a new Codex review. Keep polling (~2 min intervals) until no new comments appear after the latest push.
+5. Only consider the PR ready to merge when all review threads are resolved and no new comments arrive.
+

@@ -7,7 +7,7 @@ mod poller;
 mod state;
 
 use tauri::tray::TrayIconBuilder;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -16,11 +16,9 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(
             tauri_plugin_stronghold::Builder::new(|password| {
-                use std::hash::{DefaultHasher, Hasher};
-                let mut hasher = DefaultHasher::new();
-                hasher.write(password.as_bytes());
-                let hash = hasher.finish();
-                hash.to_le_bytes().to_vec()
+                use sha2::{Sha256, Digest};
+                let hash = Sha256::digest(password.as_bytes());
+                hash.to_vec()
             })
             .build(),
         )
@@ -35,6 +33,13 @@ pub fn run() {
             github::refresh_prs_cmd
         ])
         .setup(|app| {
+            // Restore saved auth token from disk (if any)
+            if let Some(saved_token) = auth::load_token_from_disk(app.handle()) {
+                let state = app.state::<state::AppState>();
+                *state.token.lock().unwrap() = Some(saved_token);
+                eprintln!("[setup] Restored auth session from disk");
+            }
+
             // Build initial menu based on auth state
             let state = app.state::<state::AppState>();
             let is_authed = state.token.lock().unwrap().is_some();
@@ -80,6 +85,55 @@ pub fn run() {
             }
 
             poller::start_polling(app.handle().clone());
+
+            // Validate restored token asynchronously (don't block startup).
+            // If the token is revoked/invalid, clear it and fall back to sign-in.
+            if is_authed {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let token = {
+                        let state = app_handle.state::<state::AppState>();
+                        let val = state.token.lock().unwrap().clone();
+                        val
+                    };
+                    if let Some(token) = token {
+                        match github::validate_token(&token).await {
+                            Some(false) => {
+                                // Token is confirmed invalid (401/403) — clear it,
+                                // but only if the token hasn't been replaced by a
+                                // fresh login while we were validating.
+                                let state = app_handle.state::<state::AppState>();
+                                let mut current = state.token.lock().unwrap();
+                                if current.as_deref() == Some(&token) {
+                                    eprintln!("[setup] Saved token is invalid, clearing session");
+                                    *current = None;
+                                    drop(current);
+                                    auth::delete_token_from_disk(&app_handle);
+                                    {
+                                        let tray_guard = state.tray.lock().unwrap();
+                                        if let Some(tray) = tray_guard.as_ref() {
+                                            if let Ok(m) = menu::build_auth_menu(&app_handle) {
+                                                let _ = tray.set_menu(Some(m));
+                                            }
+                                        }
+                                    }
+                                    // Notify the frontend so it switches to the login screen
+                                    let _ = app_handle.emit("auth-cleared", ());
+                                } else {
+                                    eprintln!("[setup] Token changed during validation, keeping new session");
+                                }
+                            }
+                            Some(true) => {
+                                eprintln!("[setup] Saved token validated successfully");
+                            }
+                            None => {
+                                // Network error — keep the token, poller will retry
+                                eprintln!("[setup] Could not validate token (offline?), keeping session");
+                            }
+                        }
+                    }
+                });
+            }
 
             Ok(())
         })
@@ -163,7 +217,7 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                             }
 
                             let state = app.state::<state::AppState>();
-                            match auth::poll_for_token(&resp.device_code, &state).await {
+                            match auth::poll_for_token(&resp.device_code, &state, &app).await {
                                 Ok(true) => {
                                     eprintln!("[auth] ✅ Authenticated via menu");
                                     let token = {

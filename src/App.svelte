@@ -14,6 +14,7 @@
   let checkingAuth = $state(true);
 
   let unlisten: (() => void) | undefined;
+  let unlistenAuth: (() => void) | undefined;
 
   async function init() {
     try {
@@ -71,18 +72,29 @@
     await loadData();
   }
 
-  onMount(() => {
-    void init();
-    listen<PullRequest[]>("prs-updated", (event) => {
+  async function setup() {
+    // Await listener registration before init() so we don't miss
+    // an auth-cleared event from fast startup token validation.
+    unlisten = await listen<PullRequest[]>("prs-updated", (event) => {
       prList = event.payload;
       lastUpdated = new Date();
-    }).then((fn) => {
-      unlisten = fn;
     });
+    unlistenAuth = await listen("auth-cleared", () => {
+      isAuthed = false;
+      prList = [];
+      userInfo = null;
+      lastUpdated = null;
+    });
+    await init();
+  }
+
+  onMount(() => {
+    void setup();
   });
 
   onDestroy(() => {
     unlisten?.();
+    unlistenAuth?.();
   });
 </script>
 
