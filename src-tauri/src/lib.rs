@@ -5,6 +5,7 @@ mod models;
 mod notifications;
 mod poller;
 mod state;
+mod updater;
 
 use tauri::tray::TrayIconBuilder;
 use tauri::{Emitter, Manager};
@@ -14,6 +15,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_stronghold::Builder::new(|password| {
                 use sha2::{Sha256, Digest};
@@ -256,6 +259,13 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                         eprintln!("[auth] Failed to start device flow: {}", e);
                     }
                 }
+            });
+        }
+
+        "check_updates" => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let _ = updater::download_and_install(&app).await;
             });
         }
 

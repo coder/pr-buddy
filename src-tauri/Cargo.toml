@@ -1,6 +1,6 @@
 [package]
 name = "pr-buddy"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 [build-dependencies]
@@ -18,3 +18,5 @@ tokio = { version = "1", features = ["full"] }
 chrono = { version = "0.4", features = ["serde"] }
 arboard = { version = "3", features = ["wayland-data-control"] }
 sha2 = "0.10"
+tauri-plugin-updater = "2.10.0"
+tauri-plugin-process = "2.3.1"
