@@ -76,40 +76,75 @@ pub fn send_notification(app: &AppHandle, event: &PrEvent) {
     let url = pr_url(event).to_string();
     let app = app.clone();
 
-    // Spawn a thread so Linux wait_for_action can block without tying up the async runtime.
+    // Spawn a thread so the blocking notification call doesn't stall the async runtime.
     std::thread::spawn(move || {
-        #[cfg(target_os = "macos")]
-        {
-            let id = &app.config().identifier;
-            let _ = notify_rust::set_application(if tauri::is_dev() {
-                "com.apple.Terminal"
-            } else {
-                id
+        send_and_handle_click(&app, &title, &body, &url);
+    });
+}
+
+/// macOS: use mac-notification-sys directly so we get the blocking NotificationResponse
+/// that tells us whether the user clicked the notification.
+#[cfg(target_os = "macos")]
+fn send_and_handle_click(app: &AppHandle, title: &str, body: &str, url: &str) {
+    let bundle_id = if tauri::is_dev() {
+        "com.apple.Terminal"
+    } else {
+        &app.config().identifier
+    };
+    let _ = mac_notification_sys::set_application(bundle_id);
+
+    let response = mac_notification_sys::Notification::new()
+        .title(title)
+        .message(body)
+        .main_button(mac_notification_sys::MainButton::SingleAction("Open PR"))
+        .wait_for_click(true)
+        .send();
+
+    match response {
+        Ok(
+            mac_notification_sys::NotificationResponse::Click
+            | mac_notification_sys::NotificationResponse::ActionButton(_),
+        ) => {
+            use tauri_plugin_opener::OpenerExt;
+            let _ = app.opener().open_url(url, None::<&str>);
+        }
+        Ok(_) => {} // dismissed / timed out — nothing to do
+        Err(e) => {
+            eprintln!("[notifications] Failed to show notification: {}", e);
+        }
+    }
+}
+
+/// Linux: use notify-rust with wait_for_action (D-Bus ActionInvoked signal).
+#[cfg(target_os = "linux")]
+fn send_and_handle_click(app: &AppHandle, title: &str, body: &str, url: &str) {
+    let mut n = notify_rust::Notification::new();
+    n.summary(title).body(body).action("default", "Open PR");
+
+    match n.show() {
+        Ok(handle) => {
+            let url = url.to_string();
+            let app = app.clone();
+            handle.wait_for_action(move |action| {
+                if action == "default" {
+                    use tauri_plugin_opener::OpenerExt;
+                    let _ = app.opener().open_url(&url, None::<&str>);
+                }
             });
         }
-
-        let mut n = notify_rust::Notification::new();
-        n.summary(&title)
-            .body(&body)
-            .action("default", "Open PR");
-
-        match n.show() {
-            Ok(handle) => {
-                // wait_for_action is only available on Linux (XDG DBus notifications).
-                // On macOS, notify-rust's handle doesn't support action callbacks.
-                #[cfg(target_os = "linux")]
-                handle.wait_for_action(|action| {
-                    if action == "default" {
-                        use tauri_plugin_opener::OpenerExt;
-                        let _ = app.opener().open_url(&url, None::<&str>);
-                    }
-                });
-                #[cfg(not(target_os = "linux"))]
-                drop(handle);
-            }
-            Err(e) => {
-                eprintln!("[notifications] Failed to show notification: {}", e);
-            }
+        Err(e) => {
+            eprintln!("[notifications] Failed to show notification: {}", e);
         }
-    });
+    }
+}
+
+/// Windows: fire-and-forget (no click handling yet).
+#[cfg(target_os = "windows")]
+fn send_and_handle_click(_app: &AppHandle, title: &str, body: &str, _url: &str) {
+    let mut n = notify_rust::Notification::new();
+    n.summary(title).body(body);
+
+    if let Err(e) = n.show() {
+        eprintln!("[notifications] Failed to show notification: {}", e);
+    }
 }
