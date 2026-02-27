@@ -19,7 +19,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            None::<Vec<String>>,
+            None::<Vec<&str>>,
         ))
         .plugin(
             tauri_plugin_stronghold::Builder::new(|password| {
