@@ -189,7 +189,8 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
 
             let prs = {
                 let state = app.state::<state::AppState>();
-                state.prs.lock().unwrap().clone()
+                let val = state.prs.lock().unwrap().clone();
+                val
             };
             let state = app.state::<state::AppState>();
             let tray_guard = state.tray.lock().unwrap();
