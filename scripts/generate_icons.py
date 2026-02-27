@@ -1,89 +1,60 @@
 #!/usr/bin/env python3
-"""Generate PR Buddy Tauri app and tray icons.
+"""Generate PR Buddy Tauri app and tray icons from SVG sources.
 
 This script is intentionally idempotent. Re-running it overwrites icon assets with the
 same deterministic output.
 
-Design: Bold solid white bell on indigo rounded square. No thin strokes, no fine
-details — readable at 16×16.
+Design: Filled bell with GitHub mark cutout (negative space).
+- App icon: indigo rounded rect, white bell, GitHub mark reveals background.
+- Tray icon: white bell with GitHub cutout on transparent (macOS template).
+
+SVG sources live alongside this script:
+  scripts/icon-app.svg   — app icon
+  scripts/icon-tray.svg  — tray template icon
+
+Requires: cairosvg, Pillow
 """
 
 from __future__ import annotations
 
+import io
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+import cairosvg
+from PIL import Image, ImageChops
 
 ROOT = Path(__file__).resolve().parents[1]
 ICONS_DIR = ROOT / "src-tauri" / "icons"
-
-BG_COLOR = (91, 110, 245, 255)   # #5B6EF5 — solid indigo
-WHITE = (255, 255, 255, 255)
-TRAY_WHITE = (255, 255, 255, 255) # white for macOS tray template image
+SCRIPTS_DIR = ROOT / "scripts"
 
 
-def _draw_bell(draw: ImageDraw.ImageDraw, size: int, fill: tuple) -> None:
-    """Draw a bold filled bell glyph centred in the canvas."""
-    s = size
-
-    # Bell handle (small rounded rect at top)
-    draw.rounded_rectangle(
-        (int(s * 0.44), int(s * 0.16), int(s * 0.56), int(s * 0.26)),
-        radius=int(s * 0.03),
-        fill=fill,
+def render_svg(svg_path: Path, size: int) -> Image.Image:
+    """Render an SVG file to an RGBA PIL Image at the given pixel size."""
+    png_data = cairosvg.svg2png(
+        url=str(svg_path),
+        output_width=size,
+        output_height=size,
     )
-
-    # Dome (top half-circle)
-    draw.pieslice(
-        (int(s * 0.25), int(s * 0.20), int(s * 0.75), int(s * 0.70)),
-        180,
-        360,
-        fill=fill,
-    )
-
-    # Body (fills gap below dome to the lip)
-    draw.rectangle(
-        (int(s * 0.25), int(s * 0.45), int(s * 0.75), int(s * 0.68)),
-        fill=fill,
-    )
-
-    # Bottom lip (wide bar)
-    draw.rounded_rectangle(
-        (int(s * 0.20), int(s * 0.65), int(s * 0.80), int(s * 0.75)),
-        radius=int(s * 0.04),
-        fill=fill,
-    )
-
-    # Clapper (ball at bottom)
-    draw.ellipse(
-        (int(s * 0.42), int(s * 0.73), int(s * 0.58), int(s * 0.87)),
-        fill=fill,
-    )
+    return Image.open(io.BytesIO(png_data)).convert("RGBA")
 
 
-def create_app_icon(size: int = 1024) -> Image.Image:
-    """Solid indigo rounded square with a white filled bell."""
-    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(canvas)
+def create_tray_icon(size: int) -> Image.Image:
+    """White bell with GitHub mark punched out on transparent background.
 
-    inset = int(size * 0.08)
-    radius = int(size * 0.22)
-    draw.rounded_rectangle(
-        (inset, inset, size - inset, size - inset),
-        radius=radius,
-        fill=BG_COLOR,
-    )
+    cairosvg doesn't handle SVG masks well, so the cutout is done via
+    Pillow alpha compositing: render the bell and GitHub mark separately,
+    then subtract the mark's alpha from the bell's alpha.
+    """
+    bell = render_svg(SCRIPTS_DIR / "icon-tray.svg", size)
+    github = render_svg(SCRIPTS_DIR / "icon-github.svg", size)
 
-    _draw_bell(draw, size, WHITE)
-    return canvas
+    bell_a = bell.split()[3]
+    github_a = github.split()[3]
+    result_a = ImageChops.subtract(bell_a, github_a)
 
-
-def create_tray_icon(size: int = 64) -> Image.Image:
-    """White filled bell on transparent background (macOS template image)."""
-    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(canvas)
-    _draw_bell(draw, size, TRAY_WHITE)
-    return canvas
+    result = bell.copy()
+    result.putalpha(result_a)
+    return result
 
 
 def save_png(image: Image.Image, path: Path, size: int) -> None:
@@ -94,8 +65,11 @@ def save_png(image: Image.Image, path: Path, size: int) -> None:
 def main() -> None:
     ICONS_DIR.mkdir(parents=True, exist_ok=True)
 
-    app = create_app_icon(1024)
-    tray = create_tray_icon(64)
+    app_svg = SCRIPTS_DIR / "icon-app.svg"
+
+    # Render at high resolution for quality downscaling
+    app = render_svg(app_svg, 1024)
+    tray = create_tray_icon(256)
 
     # PNG app icons
     save_png(app, ICONS_DIR / "32x32.png", 32)
@@ -103,7 +77,7 @@ def main() -> None:
     save_png(app, ICONS_DIR / "128x128@2x.png", 256)
     save_png(app, ICONS_DIR / "icon.png", 512)
 
-    # Tray icon (transparent background, white bell — macOS template image)
+    # Tray icon (transparent background, white bell+cutout — macOS template image)
     save_png(tray, ICONS_DIR / "tray-default.png", 32)
 
     # Windows ICO (multi-resolution)
@@ -113,7 +87,7 @@ def main() -> None:
         sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
     )
 
-    # macOS ICNS
+    # macOS ICNS — used by Finder, Dock, and Notification Center
     app.save(ICONS_DIR / "icon.icns", format="ICNS")
 
     # Keep directory clean once real assets exist.

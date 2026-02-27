@@ -167,6 +167,9 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
     menu.append(&sep)?;
     let refresh = MenuItem::with_id(app, "refresh", "Refresh", true, None::<&str>)?;
     menu.append(&refresh)?;
+    let check_updates =
+        MenuItem::with_id(app, "check_updates", "Check for Updates", true, None::<&str>)?;
+    menu.append(&check_updates)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
     menu.append(&sep2)?;
     let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
@@ -182,6 +185,11 @@ pub fn build_auth_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     menu.append(&sign_in)?;
     let sep = PredefinedMenuItem::separator(app)?;
     menu.append(&sep)?;
+    let check_updates =
+        MenuItem::with_id(app, "check_updates", "Check for Updates", true, None::<&str>)?;
+    menu.append(&check_updates)?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
+    menu.append(&sep2)?;
     let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
     menu.append(&quit)?;
     Ok(menu)

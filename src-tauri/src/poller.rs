@@ -13,6 +13,10 @@ use crate::state::AppState;
 const POLL_INTERVAL_ACTIVE: u64 = 30;
 const POLL_INTERVAL_IDLE: u64 = 120;
 
+/// Check for updates roughly every 4 hours.
+/// At the idle interval of 120s, that's ~120 poll cycles.
+const UPDATE_CHECK_EVERY_N_POLLS: u32 = 120;
+
 fn has_active_items(prs: &[PullRequest]) -> bool {
     prs.iter().any(|pr| {
         pr.check_status == CheckStatus::Pending || pr.merge_queue_info.is_some()
@@ -21,6 +25,9 @@ fn has_active_items(prs: &[PullRequest]) -> bool {
 
 pub fn start_polling(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {
+        // Start at the threshold so the first iteration triggers an update check
+        let mut update_poll_counter: u32 = UPDATE_CHECK_EVERY_N_POLLS;
+
         loop {
             let token = {
                 let state = app_handle.state::<AppState>();
@@ -119,6 +126,13 @@ pub fn start_polling(app_handle: AppHandle) {
             } else {
                 // Not authenticated, check less frequently
                 tokio::time::sleep(Duration::from_secs(POLL_INTERVAL_IDLE)).await;
+            }
+
+            // Periodic update check (~every 4 hours)
+            update_poll_counter += 1;
+            if update_poll_counter >= UPDATE_CHECK_EVERY_N_POLLS {
+                update_poll_counter = 0;
+                let _ = crate::updater::check_for_update(&app_handle).await;
             }
         }
     });
