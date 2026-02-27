@@ -52,47 +52,51 @@ gh pr comment {number} --body "@codex review"
 After requesting, poll for Codex review comments. Codex reviews arrive
 asynchronously — typically within 1–3 minutes.
 
-Codex may leave **inline thread comments**, **top-level review comments**,
-or both. You must check both sources:
+**Preferred: use the helper script** which checks all Codex response
+channels (👍 reactions, PR comments, and review threads):
 
-**Check inline thread comments** (also gives thread IDs for resolving):
+```bash
+./scripts/wait_pr_codex.sh {number}        # blocks until Codex responds
+./scripts/check_codex_comments.sh {number} # one-shot check (exit 0/1/10)
+```
+
+Exit codes: `0` = approved, `1` = comments to address, `10` = still waiting.
+
+**Manual polling** (when scripts aren't available): Codex may respond via
+👍 reactions on the PR, regular PR comments, or inline review threads.
+You must check all three — the GraphQL query below covers them in one call:
 
 ```bash
 gh api graphql -f query='
 {
   repository(owner: "{owner}", name: "{repo}") {
     pullRequest(number: {number}) {
-      reviewThreads(first: 20) {
+      comments(last: 20) {
+        nodes { author { login }, body, createdAt }
+      }
+      reviewThreads(last: 20) {
         nodes {
           id
           isResolved
-          comments(first: 5) {
-            nodes { body, author { login }, databaseId }
+          comments(first: 1) {
+            nodes { author { login }, body, databaseId }
           }
         }
+      }
+      reactions(last: 20, content: THUMBS_UP) {
+        nodes { user { login } }
       }
     }
   }
 }'
 ```
 
-**Check top-level PR reviews** (catches summary-only reviews with no inline comments).
-Include `commit_id` to scope to the latest push — old reviews from earlier
-commits don't count:
+Filter results for `author.login == "chatgpt-codex-connector"`.
 
-```bash
-gh api repos/{owner}/{repo}/pulls/{number}/reviews \
-  --jq '.[] | select(.user.login == "chatgpt-codex-connector[bot]") | {id, state, commit_id, body}'
-```
-
-Compare `commit_id` against the current HEAD (`git rev-parse HEAD`). Only
-reviews matching the latest commit confirm that Codex has reviewed it.
-
-**Codex always leaves at least one review or comment per review cycle.**
-If you see zero Codex activity **for the latest commit** from both queries,
-the review is still in progress. Keep polling (~30s intervals) until at
-least one Codex review or comment appears for the current HEAD. Only after
-Codex has spoken (and there are no unresolved threads) can you move on.
+**Codex always leaves at least one response per review cycle** (reaction,
+comment, or review thread). If you see zero Codex activity from all three
+channels, the review is still in progress. Keep polling (~30s intervals)
+until Codex has spoken. Only then check for unresolved threads.
 
 ## 4. Fix Codex comments
 
@@ -129,7 +133,7 @@ Codex does **not** automatically re-review after a push. After pushing fixes:
 A PR is ready to merge **only when ALL of these are true**:
 
 - [ ] All CI checks pass (green)
-- [ ] Codex has posted at least one review or comment for the latest push (check both reviews and review threads)
+- [ ] Codex has responded for the latest review cycle (reaction, comment, or review thread)
 - [ ] No unresolved Codex review threads
 - [ ] No new unresolved comments after the latest push
 
@@ -145,7 +149,6 @@ Only declare the PR ready after Codex has spoken.
 - **Codex doesn't auto-review pushes** — after pushing fixes, you must
   comment `@codex review` to trigger a new review. Always do this and
   re-poll after pushing.
-- **Zero comments ≠ all clear** — Codex always posts at least one review
-  or comment per review cycle. Check both `/reviews` and `reviewThreads`.
-  If both are empty for the current cycle, the review is still running.
-  Keep polling.
+- **Zero activity ≠ all clear** — Codex always responds per review cycle
+  (reaction, comment, or thread). Check all three channels. If all are
+  empty, the review is still running. Keep polling.
