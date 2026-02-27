@@ -72,8 +72,11 @@ jobs:
       - run: npm run vite:build
 
   cargo-check:
-    name: Cargo Check
-    runs-on: ubuntu-latest
+    name: Cargo Check (${{ matrix.platform }})
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -83,6 +86,7 @@ jobs:
         with:
           workspaces: "src-tauri -> target"
       - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
