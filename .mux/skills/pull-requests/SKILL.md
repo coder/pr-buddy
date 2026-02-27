@@ -70,7 +70,12 @@ gh api graphql -f query='
 }'
 ```
 
-Wait ~2 minutes after each push before concluding there are no new comments.
+**Codex always leaves at least one comment per review** — either inline
+feedback or a top-level "looks good" message. If you see **zero** Codex
+comments after a push, the review is still in progress. Keep polling
+(~30s intervals) until at least one Codex comment appears for the current
+review cycle. Only after a Codex comment confirms the review is complete
+(and there are no unresolved threads) can you move on.
 
 ## 4. Fix Codex comments
 
@@ -106,10 +111,12 @@ Each push may trigger a new Codex review. After pushing fixes:
 A PR is ready to merge **only when ALL of these are true**:
 
 - [ ] All CI checks pass (green)
+- [ ] Codex has posted at least one comment for the latest push (confirming the review completed)
 - [ ] No unresolved Codex review threads
-- [ ] No new Codex comments after the latest push (waited ≥2 min)
+- [ ] No new unresolved comments after the latest push
 
-Only then report the PR as ready to the user.
+Zero Codex comments ≠ "no issues". It means the review hasn't finished.
+Only declare the PR ready after Codex has spoken.
 
 ## Common pitfalls
 
@@ -119,3 +126,5 @@ Only then report the PR as ready to the user.
   underlying issue is addressed in code and pushed.
 - **Each push resets the clock** — new pushes can trigger new reviews.
   Always re-poll after pushing.
+- **Zero comments ≠ all clear** — Codex always posts at least one comment
+  per review. If you see none, the review is still running. Keep polling.
