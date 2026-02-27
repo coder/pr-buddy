@@ -41,8 +41,16 @@ gh pr checks <number>
 
 ## 3. Poll for Codex review comments
 
-After checks pass (or while waiting), poll for Codex review comments.
-Codex reviews arrive asynchronously — typically within 1–3 minutes of a push.
+Codex reviews are triggered automatically when a PR is opened or marked
+ready, but **not** on subsequent pushes. After pushing fixes, you must
+explicitly request a new review by commenting on the PR:
+
+```bash
+gh pr comment {number} --body "@codex review"
+```
+
+After requesting, poll for Codex review comments. Codex reviews arrive
+asynchronously — typically within 1–3 minutes.
 
 Codex may leave **inline thread comments**, **top-level review comments**,
 or both. You must check both sources:
@@ -104,11 +112,12 @@ For each unresolved Codex comment:
 
 ## 5. Repeat
 
-Each push may trigger a new Codex review. After pushing fixes:
+Codex does **not** automatically re-review after a push. After pushing fixes:
 
 1. Go back to **Step 2** — wait for CI checks to pass.
-2. Go back to **Step 3** — poll for new Codex comments (~2 min).
-3. If new comments appear, go to **Step 4**.
+2. **Request a new Codex review**: `gh pr comment {number} --body "@codex review"`
+3. Go back to **Step 3** — poll for new Codex comments.
+4. If new comments appear, go to **Step 4**.
 
 ## 6. Declare ready
 
@@ -128,8 +137,10 @@ Only declare the PR ready after Codex has spoken.
   there are no review comments. Always check both.
 - **Don't resolve without fixing** — resolve threads only after the
   underlying issue is addressed in code and pushed.
-- **Each push resets the clock** — new pushes can trigger new reviews.
-  Always re-poll after pushing.
+- **Codex doesn't auto-review pushes** — after pushing fixes, you must
+  comment `@codex review` to trigger a new review. Always do this and
+  re-poll after pushing.
 - **Zero comments ≠ all clear** — Codex always posts at least one review
-  or comment per push. Check both `/reviews` and `reviewThreads`. If both
-  are empty, the review is still running. Keep polling.
+  or comment per review cycle. Check both `/reviews` and `reviewThreads`.
+  If both are empty for the current cycle, the review is still running.
+  Keep polling.
