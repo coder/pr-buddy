@@ -29,6 +29,7 @@
   });
 
   let autostart = $state(false);
+  let toggling = $state(false);
   let toggled = false;
   onMount(() => {
     void isEnabled().then((v) => {
@@ -37,6 +38,8 @@
   });
 
   async function toggleAutostart() {
+    if (toggling) return;
+    toggling = true;
     toggled = true;
     try {
       if (autostart) {
@@ -47,6 +50,8 @@
       autostart = await isEnabled();
     } catch (e) {
       console.error("Failed to toggle autostart:", e);
+    } finally {
+      toggling = false;
     }
   }
 
