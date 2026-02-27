@@ -29,6 +29,10 @@ export default defineConfig({
         "src/__mocks__/tauri-notification.ts",
         import.meta.url,
       ).pathname,
+      "@tauri-apps/plugin-autostart": new URL(
+        "src/__mocks__/tauri-autostart.ts",
+        import.meta.url,
+      ).pathname,
     },
   },
 });
