@@ -6,11 +6,9 @@
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import LogOut from "@lucide/svelte/icons/log-out";
   import { openUrl } from "@tauri-apps/plugin-opener";
-  import { enable, disable, isEnabled } from "@tauri-apps/plugin-autostart";
   import type { PullRequest, GitHubUser } from "./types";
   import { groupPrs } from "./stores";
   import PRSection from "./PRSection.svelte";
-  import { onMount } from "svelte";
 
   interface Props {
     prs: PullRequest[];
@@ -27,33 +25,6 @@
     const id = setInterval(() => { now = new Date(); }, 1000);
     return () => clearInterval(id);
   });
-
-  let autostart = $state(false);
-  let toggling = $state(false);
-  let toggled = false;
-  onMount(() => {
-    void isEnabled().then((v) => {
-      if (!toggled) autostart = v;
-    });
-  });
-
-  async function toggleAutostart() {
-    if (toggling) return;
-    toggling = true;
-    toggled = true;
-    try {
-      if (autostart) {
-        await disable();
-      } else {
-        await enable();
-      }
-      autostart = await isEnabled();
-    } catch (e) {
-      console.error("Failed to toggle autostart:", e);
-    } finally {
-      toggling = false;
-    }
-  }
 
   let sections = $derived(groupPrs(prs));
   let totalPrs = $derived(prs.filter(pr => pr.state === "open").length);
@@ -120,47 +91,27 @@
 </div>
 
 <!-- Footer -->
-<div class="border-t border-gray-800 shrink-0">
-  <div class="flex items-center justify-between px-4 py-2">
-    <span class="text-[11px] text-gray-600">
-      Updated {relativeTime(lastUpdated)}
-    </span>
-    <div class="flex items-center gap-1">
-      <button
-        onclick={() => openUrl("https://github.com/pulls")}
-        class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
-               transition-colors py-1 px-2 rounded hover:bg-[#1e1e2e]"
-      >
-        <ExternalLink size={12} />
-        See all
-      </button>
-      <button
-        onclick={onRefresh}
-        disabled={refreshing}
-        class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
-               transition-colors disabled:opacity-50 py-1 px-2 rounded hover:bg-[#1e1e2e]"
-      >
-        <RefreshCw size={12} class={refreshing ? "animate-spin" : ""} />
-        Refresh
-      </button>
-    </div>
-  </div>
-  <div class="flex items-center justify-between px-4 py-1.5 border-t border-gray-800/50">
-    <label class="flex items-center gap-2 cursor-pointer select-none">
-      <button
-        role="switch"
-        aria-checked={autostart}
-        aria-label="Launch at login"
-        onclick={toggleAutostart}
-        class="relative inline-flex h-4 w-7 items-center rounded-full transition-colors
-               {autostart ? 'bg-purple-600' : 'bg-gray-700'}"
-      >
-        <span
-          class="inline-block h-3 w-3 rounded-full bg-white transition-transform
-                 {autostart ? 'translate-x-3.5' : 'translate-x-0.5'}"
-        ></span>
-      </button>
-      <span class="text-[11px] text-gray-500">Launch at login</span>
-    </label>
+<div class="flex items-center justify-between px-4 py-2 border-t border-gray-800 shrink-0">
+  <span class="text-[11px] text-gray-600">
+    Updated {relativeTime(lastUpdated)}
+  </span>
+  <div class="flex items-center gap-1">
+    <button
+      onclick={() => openUrl("https://github.com/pulls")}
+      class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
+             transition-colors py-1 px-2 rounded hover:bg-[#1e1e2e]"
+    >
+      <ExternalLink size={12} />
+      See all
+    </button>
+    <button
+      onclick={onRefresh}
+      disabled={refreshing}
+      class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
+             transition-colors disabled:opacity-50 py-1 px-2 rounded hover:bg-[#1e1e2e]"
+    >
+      <RefreshCw size={12} class={refreshing ? "animate-spin" : ""} />
+      Refresh
+    </button>
   </div>
 </div>
