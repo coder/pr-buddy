@@ -63,8 +63,9 @@ channels (👍 reactions, PR comments, and review threads):
 Exit codes: `0` = approved, `1` = comments to address, `10` = still waiting.
 
 **Note:** The script can return `0` from a stale 👍 reaction left on a
-prior commit. If you just pushed and requested `@codex review`, verify
-the approval is fresh (check for new comments or threads after requesting).
+prior commit. If you just pushed and requested `@codex review`, also
+check for new unresolved threads or comments (by timestamp) to confirm
+the new review cycle has actually completed.
 
 **Manual polling** (when scripts aren't available): Codex may respond via
 👍 reactions on the PR, regular PR comments, or inline review threads.
@@ -102,8 +103,8 @@ and reactions for `user.login == "chatgpt-codex-connector"` (reactions use
 **⚠️ Stale reactions:** A 👍 reaction from a prior review cycle persists
 across pushes. After requesting a new `@codex review`, don't treat an
 existing reaction as proof the new review is complete. Look for a **new**
-comment or thread posted after your `@codex review` request, or wait for
-the helper script to report unresolved threads (exit 1) or fresh approval.
+comment or unresolved thread posted after your `@codex review` request
+(compare `createdAt` timestamps).
 
 **Codex always leaves at least one response per review cycle** (reaction,
 comment, or review thread). If you see zero **new** Codex activity after
