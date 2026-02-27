@@ -29,11 +29,15 @@
   });
 
   let autostart = $state(false);
+  let toggled = false;
   onMount(() => {
-    void isEnabled().then((v) => { autostart = v; });
+    void isEnabled().then((v) => {
+      if (!toggled) autostart = v;
+    });
   });
 
   async function toggleAutostart() {
+    toggled = true;
     try {
       if (autostart) {
         await disable();
