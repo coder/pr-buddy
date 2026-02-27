@@ -144,16 +144,6 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
             menu.append(&item)?;
         }
 
-        if section.prs.len() > 5 {
-            let see_all = MenuItem::with_id(
-                app,
-                &format!("see_all_{}", section.title),
-                "  See all ↗",
-                true,
-                None::<&str>,
-            )?;
-            menu.append(&see_all)?;
-        }
     }
 
     // If no sections had PRs, show empty state
@@ -165,6 +155,8 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
     // Footer
     let sep = PredefinedMenuItem::separator(app)?;
     menu.append(&sep)?;
+    let see_all = MenuItem::with_id(app, "see_all", "See all on GitHub ↗", true, None::<&str>)?;
+    menu.append(&see_all)?;
     let refresh = MenuItem::with_id(app, "refresh", "Refresh", true, None::<&str>)?;
     menu.append(&refresh)?;
     let check_updates =
@@ -172,6 +164,8 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
     menu.append(&check_updates)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
     menu.append(&sep2)?;
+    let logout = MenuItem::with_id(app, "logout", "Logout", true, None::<&str>)?;
+    menu.append(&logout)?;
     let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
     menu.append(&quit)?;
 

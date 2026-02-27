@@ -23,6 +23,7 @@ export default defineConfig({
       "@lucide/svelte/icons/party-popper",
       "@lucide/svelte/icons/refresh-cw",
       "@lucide/svelte/icons/log-out",
+      "@lucide/svelte/icons/external-link",
     ],
   },
   server: {

@@ -3,7 +3,9 @@
   import Inbox from "@lucide/svelte/icons/inbox";
   import PartyPopper from "@lucide/svelte/icons/party-popper";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
   import LogOut from "@lucide/svelte/icons/log-out";
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import type { PullRequest, GitHubUser } from "./types";
   import { groupPrs } from "./stores";
   import PRSection from "./PRSection.svelte";
@@ -93,13 +95,23 @@
   <span class="text-[11px] text-gray-600">
     Updated {relativeTime(lastUpdated)}
   </span>
-  <button
-    onclick={onRefresh}
-    disabled={refreshing}
-    class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
-           transition-colors disabled:opacity-50 py-1 px-2 rounded hover:bg-[#1e1e2e]"
-  >
-    <RefreshCw size={12} class={refreshing ? "animate-spin" : ""} />
-    Refresh
-  </button>
+  <div class="flex items-center gap-1">
+    <button
+      onclick={() => openUrl("https://github.com/pulls")}
+      class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
+             transition-colors py-1 px-2 rounded hover:bg-[#1e1e2e]"
+    >
+      <ExternalLink size={12} />
+      See all
+    </button>
+    <button
+      onclick={onRefresh}
+      disabled={refreshing}
+      class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
+             transition-colors disabled:opacity-50 py-1 px-2 rounded hover:bg-[#1e1e2e]"
+    >
+      <RefreshCw size={12} class={refreshing ? "animate-spin" : ""} />
+      Refresh
+    </button>
+  </div>
 </div>
