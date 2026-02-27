@@ -44,12 +44,10 @@ gh pr checks <number>
 After checks pass (or while waiting), poll for Codex review comments.
 Codex reviews arrive asynchronously — typically within 1–3 minutes of a push.
 
-```bash
-gh api repos/{owner}/{repo}/pulls/{number}/comments \
-  --jq '.[] | select(.user.login == "chatgpt-codex-connector[bot]") | {id, path, line, body}'
-```
+Codex may leave **inline thread comments**, **top-level review comments**,
+or both. You must check both sources:
 
-Or use the GraphQL query to get thread IDs (needed for resolving):
+**Check inline thread comments** (also gives thread IDs for resolving):
 
 ```bash
 gh api graphql -f query='
@@ -70,12 +68,18 @@ gh api graphql -f query='
 }'
 ```
 
-**Codex always leaves at least one comment per review** — either inline
-feedback or a top-level "looks good" message. If you see **zero** Codex
-comments after a push, the review is still in progress. Keep polling
-(~30s intervals) until at least one Codex comment appears for the current
-review cycle. Only after a Codex comment confirms the review is complete
-(and there are no unresolved threads) can you move on.
+**Check top-level PR reviews** (catches summary-only reviews with no inline comments):
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{number}/reviews \
+  --jq '.[] | select(.user.login == "chatgpt-codex-connector[bot]") | {id, state, body}'
+```
+
+**Codex always leaves at least one review or comment per push.** If you
+see zero Codex activity from both queries after a push, the review is
+still in progress. Keep polling (~30s intervals) until at least one Codex
+review or comment appears for the current review cycle. Only after Codex
+has spoken (and there are no unresolved threads) can you move on.
 
 ## 4. Fix Codex comments
 
@@ -111,7 +115,7 @@ Each push may trigger a new Codex review. After pushing fixes:
 A PR is ready to merge **only when ALL of these are true**:
 
 - [ ] All CI checks pass (green)
-- [ ] Codex has posted at least one comment for the latest push (confirming the review completed)
+- [ ] Codex has posted at least one review or comment for the latest push (check both reviews and review threads)
 - [ ] No unresolved Codex review threads
 - [ ] No new unresolved comments after the latest push
 
@@ -126,5 +130,6 @@ Only declare the PR ready after Codex has spoken.
   underlying issue is addressed in code and pushed.
 - **Each push resets the clock** — new pushes can trigger new reviews.
   Always re-poll after pushing.
-- **Zero comments ≠ all clear** — Codex always posts at least one comment
-  per review. If you see none, the review is still running. Keep polling.
+- **Zero comments ≠ all clear** — Codex always posts at least one review
+  or comment per push. Check both `/reviews` and `reviewThreads`. If both
+  are empty, the review is still running. Keep polling.
