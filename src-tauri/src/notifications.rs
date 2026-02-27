@@ -76,7 +76,7 @@ pub fn send_notification(app: &AppHandle, event: &PrEvent) {
     let url = pr_url(event).to_string();
     let app = app.clone();
 
-    // Spawn a thread so wait_for_action can block without tying up the async runtime.
+    // Spawn a thread so Linux wait_for_action can block without tying up the async runtime.
     std::thread::spawn(move || {
         #[cfg(target_os = "macos")]
         {
@@ -95,13 +95,17 @@ pub fn send_notification(app: &AppHandle, event: &PrEvent) {
 
         match n.show() {
             Ok(handle) => {
-                // Blocks until the notification is clicked or dismissed.
+                // wait_for_action is only available on Linux (XDG DBus notifications).
+                // On macOS, notify-rust's handle doesn't support action callbacks.
+                #[cfg(target_os = "linux")]
                 handle.wait_for_action(|action| {
                     if action == "default" {
                         use tauri_plugin_opener::OpenerExt;
                         let _ = app.opener().open_url(&url, None::<&str>);
                     }
                 });
+                #[cfg(not(target_os = "linux"))]
+                drop(handle);
             }
             Err(e) => {
                 eprintln!("[notifications] Failed to show notification: {}", e);
