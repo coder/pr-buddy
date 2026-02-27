@@ -33,6 +33,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Sync version from git tag
+        shell: bash
+        run: |
+          # Extract version from tag (strip leading 'v')
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          # Update tauri.conf.json
+          cd src-tauri
+          sed -i.bak 's/"version": "[^"]*"/"version": "'"$VERSION"'"/' tauri.conf.json && rm -f tauri.conf.json.bak
+          # Update Cargo.toml (only the first version = line, i.e. the package version)
+          sed -i.bak '0,/^version = ".*"/s//version = "'"$VERSION"'"/' Cargo.toml && rm -f Cargo.toml.bak
+          echo "Set version to $VERSION"
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -100,12 +113,12 @@ jobs:
           EV_KEY: ${{ vars.EV_KEY }}
           EV_TSA_URL: ${{ vars.EV_TSA_URL }}
           GCLOUD_ACCESS_TOKEN: ${{ steps.windows_signing.outputs.gcloud_access_token }}
-          # Updater signing (optional)
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Updater signing (optional — only set when the secret exists)
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         with:
-          tagName: v__VERSION__
-          releaseName: "PR Buddy v__VERSION__"
+          tagName: ${{ github.ref_name }}
+          releaseName: "PR Buddy ${{ github.ref_name }}"
           releaseBody: "See the assets below to download and install this version."
           releaseDraft: true
           prerelease: false
