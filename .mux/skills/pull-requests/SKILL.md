@@ -76,18 +76,23 @@ gh api graphql -f query='
 }'
 ```
 
-**Check top-level PR reviews** (catches summary-only reviews with no inline comments):
+**Check top-level PR reviews** (catches summary-only reviews with no inline comments).
+Include `commit_id` to scope to the latest push — old reviews from earlier
+commits don't count:
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/{number}/reviews \
-  --jq '.[] | select(.user.login == "chatgpt-codex-connector[bot]") | {id, state, body}'
+  --jq '.[] | select(.user.login == "chatgpt-codex-connector[bot]") | {id, state, commit_id, body}'
 ```
 
-**Codex always leaves at least one review or comment per push.** If you
-see zero Codex activity from both queries after a push, the review is
-still in progress. Keep polling (~30s intervals) until at least one Codex
-review or comment appears for the current review cycle. Only after Codex
-has spoken (and there are no unresolved threads) can you move on.
+Compare `commit_id` against the current HEAD (`git rev-parse HEAD`). Only
+reviews matching the latest commit confirm that Codex has reviewed it.
+
+**Codex always leaves at least one review or comment per review cycle.**
+If you see zero Codex activity **for the latest commit** from both queries,
+the review is still in progress. Keep polling (~30s intervals) until at
+least one Codex review or comment appears for the current HEAD. Only after
+Codex has spoken (and there are no unresolved threads) can you move on.
 
 ## 4. Fix Codex comments
 
