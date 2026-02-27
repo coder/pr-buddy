@@ -282,6 +282,7 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                 let state = app.state::<state::AppState>();
                 *state.token.lock().unwrap() = None;
                 *state.prs.lock().unwrap() = vec![];
+                state.previous_prs.lock().unwrap().clear();
                 auth::delete_token_from_disk(&app);
                 let tray_guard = state.tray.lock().unwrap();
                 if let Some(tray) = tray_guard.as_ref() {
