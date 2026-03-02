@@ -1,5 +1,6 @@
 use tauri::AppHandle;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
+use tauri_plugin_autostart::ManagerExt;
 
 use crate::models::{CheckStatus, PrState, PullRequest};
 
@@ -162,6 +163,16 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
     let check_updates =
         MenuItem::with_id(app, "check_updates", "Check for Updates", true, None::<&str>)?;
     menu.append(&check_updates)?;
+    let autostart_enabled = app.autolaunch().is_enabled().unwrap_or(false);
+    let autostart_toggle = CheckMenuItem::with_id(
+        app,
+        "autostart_toggle",
+        "Launch at login",
+        true,
+        autostart_enabled,
+        None::<&str>,
+    )?;
+    menu.append(&autostart_toggle)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
     menu.append(&sep2)?;
     let logout = MenuItem::with_id(app, "logout", "Logout", true, None::<&str>)?;
