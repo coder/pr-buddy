@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use tauri::tray::TrayIcon;
 
 use crate::models::{GitHubUser, PullRequest};
+use crate::settings::UserSettings;
 
 pub struct AppState {
     pub prs: Mutex<Vec<PullRequest>>,
@@ -13,6 +14,7 @@ pub struct AppState {
     pub user: Mutex<Option<GitHubUser>>,
     pub last_poll: Mutex<Option<DateTime<Utc>>>,
     pub tray: Mutex<Option<TrayIcon>>,
+    pub settings: Mutex<UserSettings>,
 }
 
 impl AppState {
@@ -24,6 +26,7 @@ impl AppState {
             user: Mutex::new(None),
             last_poll: Mutex::new(None),
             tray: Mutex::new(None),
+            settings: Mutex::new(UserSettings::default()),
         }
     }
 }

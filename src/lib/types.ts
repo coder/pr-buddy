@@ -48,6 +48,15 @@ export interface DeviceCodeResponse {
   interval: number;
 }
 
+export interface UserSettings {
+  notify_checks_failed: boolean;
+  notify_checks_passed: boolean;
+  notify_merged: boolean;
+  notify_removed_from_queue: boolean;
+  hidden_repos: string[];
+}
+
+
 export type IconComponent =
   | Component<{ size?: number | string; class?: string }>
   | ComponentType<SvelteComponent>;

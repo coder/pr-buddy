@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::auth;
 
 use crate::github::fetch_pull_requests;
-use crate::models::{CheckStatus, PullRequest};
+use crate::models::{CheckStatus, PrEvent, PullRequest};
 use crate::notifications::{diff_pr_states, send_notification};
 use crate::state::AppState;
 
@@ -44,9 +44,20 @@ pub fn start_polling(app_handle: AppHandle) {
                             diff_pr_states(&previous, &new_prs)
                         };
 
-                        // Send notifications for state changes
-                        for event in &events {
-                            send_notification(&app_handle, event);
+                        // Send notifications for state changes (gated by user settings)
+                        {
+                            let settings = app_handle.state::<AppState>().settings.lock().unwrap().clone();
+                            for event in &events {
+                                let should_notify = match event {
+                                    PrEvent::ChecksFailed(_) => settings.notify_checks_failed,
+                                    PrEvent::ChecksPassed(_) => settings.notify_checks_passed,
+                                    PrEvent::Merged(_) => settings.notify_merged,
+                                    PrEvent::RemovedFromMergeQueue(_) => settings.notify_removed_from_queue,
+                                };
+                                if should_notify {
+                                    send_notification(&app_handle, event);
+                                }
+                            }
                         }
 
                         // Update stored state

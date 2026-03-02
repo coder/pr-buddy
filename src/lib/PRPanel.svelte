@@ -5,6 +5,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import LogOut from "@lucide/svelte/icons/log-out";
+  import Settings from "@lucide/svelte/icons/settings";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import type { PullRequest, GitHubUser } from "./types";
   import { groupPrs } from "./stores";
@@ -17,8 +18,9 @@
     refreshing: boolean;
     onRefresh: () => void;
     onLogout: () => void;
+    onOpenSettings: () => void;
   }
-  let { prs, user, lastUpdated, refreshing, onRefresh, onLogout }: Props = $props();
+  let { prs, user, lastUpdated, refreshing, onRefresh, onLogout, onOpenSettings }: Props = $props();
 
   let now = $state(new Date());
   $effect(() => {
@@ -58,6 +60,13 @@
         class="w-6 h-6 rounded-full ring-1 ring-gray-700"
       />
     {/if}
+    <button
+      onclick={onOpenSettings}
+      class="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded hover:bg-[#1e1e2e]"
+      title="Settings"
+    >
+      <Settings size={16} />
+    </button>
     <button
       onclick={onLogout}
       class="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded hover:bg-[#1e1e2e]"

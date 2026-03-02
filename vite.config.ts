@@ -24,6 +24,9 @@ export default defineConfig({
       "@lucide/svelte/icons/refresh-cw",
       "@lucide/svelte/icons/log-out",
       "@lucide/svelte/icons/external-link",
+      "@lucide/svelte/icons/settings",
+      "@lucide/svelte/icons/arrow-left",
+      "@lucide/svelte/icons/git-branch",
     ],
   },
   server: {
