@@ -22,6 +22,9 @@
 
   let loaded = $state(false);
 
+  // Serialize saves so rapid toggles don't race each other
+  let saveChain = Promise.resolve();
+
   onMount(() => {
     void loadSettings();
   });
@@ -37,12 +40,10 @@
     }
   }
 
-  async function save() {
-    try {
-      await invoke("save_settings_cmd", { settings });
-    } catch (e) {
-      console.error("[settings] Failed to save settings:", e);
-    }
+  function save() {
+    saveChain = saveChain
+      .then(async () => { await invoke("save_settings_cmd", { settings }); })
+      .catch((e: unknown) => console.error("[settings] Failed to save settings:", e));
   }
 
   // Derive unique repos from current PRs + any hidden repos not in current PRs
