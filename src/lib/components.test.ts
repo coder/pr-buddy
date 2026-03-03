@@ -132,3 +132,11 @@ describe("SettingsPage", () => {
   });
 });
 
+describe("UpdateDialog", () => {
+  it("renders without crashing", async () => {
+    const { default: UpdateDialog } = await import("./UpdateDialog.svelte");
+    const { container } = render(UpdateDialog);
+    expect(container.innerHTML).not.toBe("");
+  });
+});
+
