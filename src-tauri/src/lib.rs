@@ -4,6 +4,7 @@ mod menu;
 mod models;
 mod notifications;
 mod poller;
+mod settings;
 mod state;
 mod updater;
 
@@ -38,7 +39,9 @@ pub fn run() {
             auth::is_authenticated_cmd,
             github::get_pull_requests_cmd,
             github::get_user_info_cmd,
-            github::refresh_prs_cmd
+            github::refresh_prs_cmd,
+            settings::get_settings_cmd,
+            settings::save_settings_cmd
         ])
         .setup(|app| {
             // Restore saved auth token from disk (if any)
@@ -46,6 +49,14 @@ pub fn run() {
                 let state = app.state::<state::AppState>();
                 *state.token.lock().unwrap() = Some(saved_token);
                 eprintln!("[setup] Restored auth session from disk");
+            }
+
+            // Load user settings from disk
+            if let Ok(app_data_dir) = app.path().app_data_dir() {
+                let loaded = settings::load_settings(&app_data_dir);
+                let state = app.state::<state::AppState>();
+                *state.settings.lock().unwrap() = loaded;
+                eprintln!("[setup] Loaded user settings from disk");
             }
 
             // Build initial menu based on auth state

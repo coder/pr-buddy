@@ -109,6 +109,7 @@ describe("PRPanel", () => {
         refreshing: false,
         onRefresh: () => {},
         onLogout: () => {},
+        onOpenSettings: () => {},
       },
     });
     expect(screen.getByText("PR Buddy")).toBeTruthy();
@@ -122,3 +123,12 @@ describe("AuthScreen", () => {
     expect(screen.getByText("Sign in with GitHub")).toBeTruthy();
   });
 });
+
+describe("SettingsPage", () => {
+  it("renders settings header", async () => {
+    const { default: SettingsPage } = await import("./SettingsPage.svelte");
+    render(SettingsPage, { props: { prs: [mockPr], onBack: () => {}, onSettingsChanged: () => {} } });
+    expect(screen.getByText("Settings")).toBeTruthy();
+  });
+});
+

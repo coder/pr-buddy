@@ -2,9 +2,10 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { onMount, onDestroy } from "svelte";
-  import type { PullRequest, GitHubUser } from "./lib/types";
+  import type { PullRequest, GitHubUser, UserSettings } from "./lib/types";
   import AuthScreen from "./lib/AuthScreen.svelte";
   import PRPanel from "./lib/PRPanel.svelte";
+  import SettingsPage from "./lib/SettingsPage.svelte";
 
   let isAuthed = $state(false);
   let prList = $state<PullRequest[]>([]);
@@ -12,11 +13,21 @@
   let lastUpdated = $state<Date | null>(null);
   let refreshing = $state(false);
   let checkingAuth = $state(true);
+  let view = $state<"panel" | "settings">("panel");
+  let settings = $state<UserSettings>({
+    notify_checks_failed: true,
+    notify_checks_passed: true,
+    notify_merged: true,
+    notify_removed_from_queue: true,
+    hidden_repos: [],
+  });
 
   let unlisten: (() => void) | undefined;
   let unlistenAuth: (() => void) | undefined;
 
   async function init() {
+    // Load settings independently — they're local and should not fail with network errors
+    void loadSettings();
     try {
       isAuthed = await invoke<boolean>("is_authenticated_cmd");
       if (isAuthed) {
@@ -26,6 +37,15 @@
       console.error("[app] Auth check failed:", e);
     } finally {
       checkingAuth = false;
+    }
+  }
+
+  async function loadSettings() {
+    try {
+      const s = await invoke<UserSettings>("get_settings_cmd");
+      if (s) settings = s;
+    } catch (e) {
+      console.error("[app] Failed to load settings:", e);
     }
   }
 
@@ -105,14 +125,21 @@
     </div>
   {:else if !isAuthed}
     <AuthScreen onSuccess={handleAuthSuccess} />
+  {:else if view === "settings"}
+    <SettingsPage
+      prs={prList}
+      onBack={() => { view = "panel"; }}
+      onSettingsChanged={(s) => { settings = s; }}
+    />
   {:else}
     <PRPanel
-      prs={prList}
+      prs={prList.filter(pr => !settings.hidden_repos.includes(`${pr.owner}/${pr.repository}`))}
       user={userInfo}
       {lastUpdated}
       {refreshing}
       onRefresh={handleRefresh}
       onLogout={handleLogout}
+      onOpenSettings={() => view = "settings"}
     />
   {/if}
 </main>
