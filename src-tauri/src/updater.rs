@@ -107,6 +107,8 @@ pub async fn install_update_cmd(app: tauri::AppHandle) -> Result<(), String> {
             .await
             .map_err(|e| e.to_string())?;
         app.restart();
+    } else {
+        return Err("No update available".to_string());
     }
     Ok(())
 }
