@@ -23,7 +23,14 @@
       <Minus size={14} />
     </button>
     <button
-      onclick={() => getCurrentWindow().hide()}
+      onclick={() => {
+        const win = getCurrentWindow();
+        if (win.label === "main") {
+          win.hide();
+        } else {
+          win.close();
+        }
+      }}
       class="p-1 rounded text-content-tertiary hover:text-content
              hover:bg-surface-hover transition-colors"
     >
