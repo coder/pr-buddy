@@ -304,6 +304,8 @@ Every PR with Codex reviews enabled must have **zero unresolved review comments*
 1. After pushing, poll for new Codex review comments (`gh api repos/{owner}/{repo}/pulls/{number}/comments`).
 2. For each new comment, fix the issue in code, commit, and push.
 3. Reply to each comment explaining the fix, then resolve the review thread via the GraphQL `resolveReviewThread` mutation.
-4. Repeat: each push may trigger a new Codex review. Keep polling (~2 min intervals) until no new comments appear after the latest push.
-5. Only consider the PR ready to merge when all review threads are resolved and no new comments arrive.
+4. After pushing fixes, **re-request a review** by commenting `@codex review` on the PR (`gh pr comment {number} --body "@codex review"`). Do not rely on the push alone to trigger a new review pass.
+5. **Wait deterministically for Codex to confirm.** Poll the PR timeline (~2 min intervals) until Codex signals approval — either a 👍 reaction on your comment, an approving review (`APPROVED` state), or a message indicating no issues remain. Do not proceed on a timeout or silence; you must receive an explicit positive signal.
+6. If Codex posts new comments instead of approving, go back to step 2 and repeat.
+7. Only consider the PR ready to merge when Codex has explicitly approved and all review threads are resolved.
 
