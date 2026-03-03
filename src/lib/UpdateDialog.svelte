@@ -69,7 +69,7 @@
   });
 </script>
 
-<div class="flex flex-col items-center justify-center h-screen bg-surface text-content p-6 select-none">
+<div class="flex flex-col items-center justify-center flex-1 min-h-0 bg-surface text-content p-6 select-none">
   {#if viewState === "checking"}
     <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
     <p class="text-sm text-content-secondary">Checking for updates...</p>
