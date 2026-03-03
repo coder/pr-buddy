@@ -34,18 +34,6 @@ pub async fn check_for_update(app: &AppHandle) -> Result<bool, Box<dyn std::erro
     }
 }
 
-/// Download and install an available update, then restart the app.
-pub async fn download_and_install(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let updater = app.updater()?;
-    if let Some(update) = updater.check().await? {
-        eprintln!("[updater] Downloading v{} ...", update.version);
-        update.download_and_install(|_, _| {}, || {}).await?;
-        eprintln!("[updater] Installed, restarting...");
-        app.restart();
-    }
-    Ok(())
-}
-
 #[derive(Serialize, Clone)]
 pub struct UpdateCheckResult {
     pub current_version: String,
@@ -106,9 +94,8 @@ pub async fn install_update_cmd(app: tauri::AppHandle) -> Result<(), String> {
             )
             .await
             .map_err(|e| e.to_string())?;
-        app.restart();
+        app.restart()
     } else {
-        return Err("No update available".to_string());
+        Err("No update available".to_string())
     }
-    Ok(())
 }
