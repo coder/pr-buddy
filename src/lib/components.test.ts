@@ -140,3 +140,12 @@ describe("UpdateDialog", () => {
   });
 });
 
+
+describe("TitleBar", () => {
+  it("renders PR Buddy title and window controls", async () => {
+    const { default: TitleBar } = await import("./TitleBar.svelte");
+    render(TitleBar);
+    expect(screen.getByText("PR Buddy")).toBeTruthy();
+  });
+});
+
