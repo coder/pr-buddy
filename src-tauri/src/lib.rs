@@ -315,9 +315,10 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
 
         "check_updates" => {
             if let Some(window) = app.get_webview_window("updater") {
+                let _ = window.show();
                 let _ = window.set_focus();
             } else {
-                let _ = tauri::WebviewWindowBuilder::new(
+                if let Ok(window) = tauri::WebviewWindowBuilder::new(
                     app,
                     "updater",
                     tauri::WebviewUrl::App("index.html?view=updater".into()),
@@ -326,7 +327,11 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                 .inner_size(400.0, 300.0)
                 .resizable(false)
                 .center()
-                .build();
+                .build()
+                {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
             }
         }
 
