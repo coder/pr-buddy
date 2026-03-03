@@ -41,7 +41,9 @@ pub fn run() {
             github::get_user_info_cmd,
             github::refresh_prs_cmd,
             settings::get_settings_cmd,
-            settings::save_settings_cmd
+            settings::save_settings_cmd,
+            updater::check_for_update_cmd,
+            updater::install_update_cmd
         ])
         .setup(|app| {
             // Restore saved auth token from disk (if any)
@@ -304,10 +306,20 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
         }
 
         "check_updates" => {
-            let app = app.clone();
-            tauri::async_runtime::spawn(async move {
-                let _ = updater::download_and_install(&app).await;
-            });
+            if let Some(window) = app.get_webview_window("updater") {
+                let _ = window.set_focus();
+            } else {
+                let _ = tauri::WebviewWindowBuilder::new(
+                    app,
+                    "updater",
+                    tauri::WebviewUrl::App("index.html?view=updater".into()),
+                )
+                .title("PR Buddy — Updates")
+                .inner_size(400.0, 300.0)
+                .resizable(false)
+                .center()
+                .build();
+            }
         }
 
         id if id.starts_with("pr_") => {
