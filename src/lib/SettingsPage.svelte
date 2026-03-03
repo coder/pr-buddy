@@ -9,8 +9,9 @@
   interface Props {
     prs: PullRequest[];
     onBack: () => void;
+    onSettingsChanged: (s: UserSettings) => void;
   }
-  let { prs, onBack }: Props = $props();
+  let { prs, onBack, onSettingsChanged }: Props = $props();
 
   let settings = $state<UserSettings>({
     notify_checks_failed: true,
@@ -41,6 +42,8 @@
   }
 
   function save() {
+    // Notify parent immediately so panel filter stays in sync
+    onSettingsChanged(structuredClone(settings));
     saveChain = saveChain
       .then(async () => { await invoke("save_settings_cmd", { settings }); })
       .catch((e: unknown) => console.error("[settings] Failed to save settings:", e));

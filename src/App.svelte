@@ -128,7 +128,8 @@
   {:else if view === "settings"}
     <SettingsPage
       prs={prList}
-      onBack={() => { view = "panel"; void loadSettings(); }}
+      onBack={() => { view = "panel"; }}
+      onSettingsChanged={(s) => { settings = s; }}
     />
   {:else}
     <PRPanel

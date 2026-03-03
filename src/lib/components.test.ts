@@ -127,7 +127,7 @@ describe("AuthScreen", () => {
 describe("SettingsPage", () => {
   it("renders settings header", async () => {
     const { default: SettingsPage } = await import("./SettingsPage.svelte");
-    render(SettingsPage, { props: { prs: [mockPr], onBack: () => {} } });
+    render(SettingsPage, { props: { prs: [mockPr], onBack: () => {}, onSettingsChanged: () => {} } });
     expect(screen.getByText("Settings")).toBeTruthy();
   });
 });
