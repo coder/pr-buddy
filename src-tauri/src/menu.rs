@@ -173,6 +173,9 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
         None::<&str>,
     )?;
     menu.append(&autostart_toggle)?;
+    let settings =
+        MenuItem::with_id(app, "settings", "Settings...", true, None::<&str>)?;
+    menu.append(&settings)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
     menu.append(&sep2)?;
     let logout = MenuItem::with_id(app, "logout", "Logout", true, None::<&str>)?;

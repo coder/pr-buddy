@@ -303,6 +303,14 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
             });
         }
 
+        "settings" => {
+            let _ = app.emit("open-settings", ());
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }
+
         "check_updates" => {
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
