@@ -24,6 +24,7 @@
 
   let unlisten: (() => void) | undefined;
   let unlistenAuth: (() => void) | undefined;
+  let unlistenSettings: (() => void) | undefined;
 
   async function init() {
     // Load settings independently — they're local and should not fail with network errors
@@ -105,6 +106,9 @@
       userInfo = null;
       lastUpdated = null;
     });
+    unlistenSettings = await listen("open-settings", () => {
+      view = "settings";
+    });
     await init();
   }
 
@@ -115,6 +119,7 @@
   onDestroy(() => {
     unlisten?.();
     unlistenAuth?.();
+    unlistenSettings?.();
   });
 </script>
 
