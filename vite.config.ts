@@ -17,6 +17,8 @@ export default defineConfig({
       "@lucide/svelte/icons/circle-dot",
       "@lucide/svelte/icons/loader",
       "@lucide/svelte/icons/check-circle",
+      "@lucide/svelte/icons/download",
+      "@lucide/svelte/icons/alert-circle",
       "@lucide/svelte/icons/file-edit",
       "@lucide/svelte/icons/git-merge",
       "@lucide/svelte/icons/inbox",

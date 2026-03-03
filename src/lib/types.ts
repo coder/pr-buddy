@@ -56,6 +56,13 @@ export interface UserSettings {
   hidden_repos: string[];
 }
 
+export interface UpdateCheckResult {
+  current_version: string;
+  update_available: boolean;
+  version: string | null;
+  body: string | null;
+}
+
 
 export type IconComponent =
   | Component<{ size?: number | string; class?: string }>

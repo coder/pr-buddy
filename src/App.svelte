@@ -6,6 +6,10 @@
   import AuthScreen from "./lib/AuthScreen.svelte";
   import PRPanel from "./lib/PRPanel.svelte";
   import SettingsPage from "./lib/SettingsPage.svelte";
+  import UpdateDialog from "./lib/UpdateDialog.svelte";
+
+  const isUpdaterWindow =
+    new URLSearchParams(window.location.search).get("view") === "updater";
 
   let isAuthed = $state(false);
   let prList = $state<PullRequest[]>([]);
@@ -118,28 +122,32 @@
   });
 </script>
 
-<main class="flex flex-col h-screen bg-[#0d1117] text-white overflow-hidden select-none">
-  {#if checkingAuth}
-    <div class="flex items-center justify-center h-full">
-      <div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  {:else if !isAuthed}
-    <AuthScreen onSuccess={handleAuthSuccess} />
-  {:else if view === "settings"}
-    <SettingsPage
-      prs={prList}
-      onBack={() => { view = "panel"; }}
-      onSettingsChanged={(s) => { settings = s; }}
-    />
-  {:else}
-    <PRPanel
-      prs={prList.filter(pr => !settings.hidden_repos.includes(`${pr.owner}/${pr.repository}`))}
-      user={userInfo}
-      {lastUpdated}
-      {refreshing}
-      onRefresh={handleRefresh}
-      onLogout={handleLogout}
-      onOpenSettings={() => view = "settings"}
-    />
-  {/if}
-</main>
+{#if isUpdaterWindow}
+  <UpdateDialog />
+{:else}
+  <main class="flex flex-col h-screen bg-[#0d1117] text-white overflow-hidden select-none">
+    {#if checkingAuth}
+      <div class="flex items-center justify-center h-full">
+        <div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    {:else if !isAuthed}
+      <AuthScreen onSuccess={handleAuthSuccess} />
+    {:else if view === "settings"}
+      <SettingsPage
+        prs={prList}
+        onBack={() => { view = "panel"; }}
+        onSettingsChanged={(s) => { settings = s; }}
+      />
+    {:else}
+      <PRPanel
+        prs={prList.filter(pr => !settings.hidden_repos.includes(`${pr.owner}/${pr.repository}`))}
+        user={userInfo}
+        {lastUpdated}
+        {refreshing}
+        onRefresh={handleRefresh}
+        onLogout={handleLogout}
+        onOpenSettings={() => view = "settings"}
+      />
+    {/if}
+  </main>
+{/if}
