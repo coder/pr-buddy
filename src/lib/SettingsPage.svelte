@@ -2,8 +2,12 @@
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
   import Bell from "@lucide/svelte/icons/bell";
   import GitBranch from "@lucide/svelte/icons/git-branch";
+  import Moon from "@lucide/svelte/icons/moon";
+  import Monitor from "@lucide/svelte/icons/monitor";
+  import Sun from "@lucide/svelte/icons/sun";
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
+  import type { ThemePreference } from "./theme.svelte.ts";
   import type { PullRequest, UserSettings } from "./types";
 
   interface Props {
@@ -22,14 +26,41 @@
   });
 
   let loaded = $state(false);
+  let currentTheme = $state<ThemePreference>("system");
+  let setThemePreference: (t: ThemePreference) => void = () => {};
 
   // Serialize saves so rapid toggles don't race each other
   let saveChain = Promise.resolve();
 
   onMount(() => {
     void loadSettings();
+    void initTheme();
   });
 
+
+  async function initTheme() {
+    if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+      window.matchMedia = (() => ({
+        matches: false,
+        media: "",
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      })) as typeof window.matchMedia;
+    }
+
+    const { getTheme, setTheme } = await import("./theme.svelte");
+    setThemePreference = setTheme;
+    currentTheme = getTheme();
+  }
+
+  function selectTheme(theme: ThemePreference) {
+    setThemePreference(theme);
+    currentTheme = theme;
+  }
   async function loadSettings() {
     try {
       const s = await invoke<UserSettings>("get_settings_cmd");
@@ -94,44 +125,67 @@
 </script>
 
 <!-- Header -->
-<div class="flex items-center gap-2 px-4 py-3 border-b border-gray-800 shrink-0">
+<div class="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
   <button
     onclick={onBack}
-    class="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-[#1e1e2e]"
+    class="text-content-secondary hover:text-content transition-colors p-1 rounded hover:bg-surface-hover"
     title="Back"
   >
     <ArrowLeft size={16} />
   </button>
-  <h1 class="text-sm font-semibold text-white">Settings</h1>
+  <h1 class="text-sm font-semibold text-content">Settings</h1>
 </div>
 
 <!-- Body -->
 <div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin px-4 py-3 space-y-5">
   {#if !loaded}
     <div class="flex items-center justify-center py-8">
-      <div class="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      <div class="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
     </div>
   {:else}
+    <!-- Theme -->
+    <section>
+      <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide mb-2">Theme</h2>
+      <div class="flex gap-1">
+        {#each [
+          { value: "system", label: "System", Icon: Monitor },
+          { value: "light", label: "Light", Icon: Sun },
+          { value: "dark", label: "Dark", Icon: Moon },
+        ] as opt (opt.value)}
+          <button
+            onclick={() => selectTheme(opt.value as ThemePreference)}
+            class="flex items-center gap-1.5 flex-1 justify-center py-1.5 px-2 rounded-lg text-xs font-medium transition-colors
+                   {currentTheme === opt.value
+                     ? 'bg-accent text-white'
+                     : 'bg-surface-secondary text-content-secondary hover:bg-surface-hover'}"
+          >
+            <opt.Icon size={13} />
+            {opt.label}
+          </button>
+        {/each}
+      </div>
+    </section>
+
     <!-- Notifications -->
     <section>
       <div class="flex items-center gap-1.5 mb-2">
-        <Bell size={13} class="text-gray-400" />
-        <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Notifications</h2>
+        <Bell size={13} class="text-content-secondary" />
+        <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide">Notifications</h2>
       </div>
       <div class="space-y-1">
         {#each notificationItems as item (item.key)}
           <button
             onclick={() => toggleNotification(item.key)}
             class="flex items-center justify-between w-full px-3 py-2 rounded-lg
-                   hover:bg-[#1e1e2e] transition-colors text-left"
+                   hover:bg-surface-hover transition-colors text-left"
           >
-            <span class="flex items-center gap-2 text-sm text-gray-300">
+            <span class="flex items-center gap-2 text-sm text-content">
               <span class="text-xs">{item.emoji}</span>
               {item.label}
             </span>
             <div
               class="w-8 h-[18px] rounded-full transition-colors relative
-                     {(settings as any)[item.key] ? 'bg-purple-600' : 'bg-gray-700'}"
+                     {(settings as any)[item.key] ? 'bg-accent' : 'bg-surface-secondary'}"
             >
               <div
                 class="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform
@@ -147,33 +201,33 @@
     <section>
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-1.5">
-          <GitBranch size={13} class="text-gray-400" />
-          <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Repositories</h2>
+          <GitBranch size={13} class="text-content-secondary" />
+          <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide">Repositories</h2>
         </div>
         {#if allRepos.length > 0}
           <button
             onclick={() => allHidden ? showAll() : hideAll()}
-            class="text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
+            class="text-[10px] text-accent hover:text-accent-hover transition-colors"
           >
             {allHidden ? "Show all" : "Hide all"}
           </button>
         {/if}
       </div>
       {#if allRepos.length === 0}
-        <p class="text-xs text-gray-600 px-3 py-2">No repositories yet</p>
+        <p class="text-xs text-content-tertiary px-3 py-2">No repositories yet</p>
       {:else}
         <div class="space-y-0.5">
           {#each allRepos as repo (repo)}
             <button
               onclick={() => toggleRepo(repo)}
               class="flex items-center gap-2.5 w-full px-3 py-1.5 rounded-lg
-                     hover:bg-[#1e1e2e] transition-colors text-left"
+                     hover:bg-surface-hover transition-colors text-left"
             >
               <div
                 class="w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0
                        {settings.hidden_repos.includes(repo)
-                         ? 'border-gray-600 bg-transparent'
-                         : 'border-purple-600 bg-purple-600'}"
+                         ? 'border-content-tertiary bg-transparent'
+                         : 'border-accent bg-accent'}"
               >
                 {#if !settings.hidden_repos.includes(repo)}
                   <svg class="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none">
@@ -181,7 +235,7 @@
                   </svg>
                 {/if}
               </div>
-              <span class="text-sm text-gray-300 truncate">{repo}</span>
+              <span class="text-sm text-content truncate">{repo}</span>
             </button>
           {/each}
         </div>

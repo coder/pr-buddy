@@ -1,7 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { openUrl } from "@tauri-apps/plugin-opener";
-  import Bell from "@lucide/svelte/icons/bell";
   import type { DeviceCodeResponse } from "./types";
 
   interface Props {
@@ -97,16 +96,14 @@
 
 <div class="flex flex-col items-center justify-center h-full px-8">
   <div class="flex flex-col items-center gap-2 mb-8">
-    <Bell size={28} class="text-gray-400" />
-    <h1 class="text-xl font-bold text-white">PR Buddy</h1>
-    <p class="text-gray-500 text-sm">Stay on top of your pull requests</p>
+    <p class="text-content-secondary text-sm">Stay on top of your pull requests</p>
   </div>
 
   {#if step === "idle"}
     <button
       onclick={startFlow}
-      class="w-full max-w-[280px] flex items-center justify-center gap-2 bg-white text-black font-semibold
-             py-2.5 px-5 rounded-lg hover:bg-gray-200 transition-colors"
+      class="w-full max-w-[280px] flex items-center justify-center gap-2 bg-content text-surface font-semibold
+             py-2.5 px-5 rounded-lg hover:opacity-90 transition-colors"
     >
       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205
@@ -126,10 +123,10 @@
 
   {:else if step === "waiting" && deviceResponse}
     <div class="flex flex-col items-center gap-5 w-full max-w-[300px]">
-      <p class="text-gray-400 text-sm text-center">Enter this code on GitHub:</p>
+      <p class="text-content-secondary text-sm text-center">Enter this code on GitHub:</p>
 
-      <div class="bg-[#1e1e2e] border border-gray-700 rounded-xl py-4 px-6 w-full text-center">
-        <span class="text-2xl font-mono font-bold tracking-[0.3em] text-white">
+      <div class="bg-surface-secondary border border-border rounded-xl py-4 px-6 w-full text-center">
+        <span class="text-2xl font-mono font-bold tracking-[0.3em] text-content">
           {deviceResponse.user_code}
         </span>
       </div>
@@ -138,23 +135,23 @@
         <button
           onclick={copyCode}
           class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors
-                 {copied ? 'bg-green-600 text-white' : 'bg-[#1e1e2e] text-gray-300 hover:bg-[#2a2a3e]'}"
+                 {copied ? 'bg-green-600 text-white' : 'bg-surface-secondary text-content-secondary hover:bg-surface-hover'}"
         >
           {copied ? "✓ Copied" : "Copy Code"}
         </button>
         <button
           onclick={openGitHub}
-          class="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-purple-600 text-white
-                 hover:bg-purple-700 transition-colors"
+          class="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-accent text-white
+                 hover:bg-accent-hover transition-colors"
         >
           Open GitHub →
         </button>
       </div>
 
       <div class="flex flex-col items-center gap-1">
-        <div class="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-        <p class="text-gray-500 text-xs">Waiting for authorization…</p>
-        <p class="text-gray-600 text-xs">Expires in {formatTime(secondsLeft)}</p>
+        <div class="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-content-tertiary text-xs">Waiting for authorization…</p>
+        <p class="text-content-tertiary text-xs">Expires in {formatTime(secondsLeft)}</p>
         {#if pollError}
           <p class="text-red-400 text-xs mt-1 text-center px-2">{pollError}</p>
         {/if}
@@ -166,8 +163,8 @@
       <p class="text-red-400 text-sm">{errorMsg}</p>
       <button
         onclick={() => { step = "idle"; }}
-        class="py-2 px-5 rounded-lg text-sm font-medium bg-[#1e1e2e] text-gray-300
-               hover:bg-[#2a2a3e] transition-colors"
+        class="py-2 px-5 rounded-lg text-sm font-medium bg-surface-secondary text-content-secondary
+               hover:bg-surface-hover transition-colors"
       >
         Try Again
       </button>

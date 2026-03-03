@@ -112,7 +112,7 @@ describe("PRPanel", () => {
         onOpenSettings: () => {},
       },
     });
-    expect(screen.getByText("PR Buddy")).toBeTruthy();
+    expect(screen.getByText("Approved")).toBeTruthy();
   });
 });
 
@@ -137,6 +137,15 @@ describe("UpdateDialog", () => {
     const { default: UpdateDialog } = await import("./UpdateDialog.svelte");
     const { container } = render(UpdateDialog);
     expect(container.innerHTML).not.toBe("");
+  });
+});
+
+
+describe("TitleBar", () => {
+  it("renders PR Buddy title and window controls", async () => {
+    const { default: TitleBar } = await import("./TitleBar.svelte");
+    render(TitleBar);
+    expect(screen.getByText("PR Buddy")).toBeTruthy();
   });
 });
 

@@ -7,6 +7,8 @@
   import PRPanel from "./lib/PRPanel.svelte";
   import SettingsPage from "./lib/SettingsPage.svelte";
   import UpdateDialog from "./lib/UpdateDialog.svelte";
+  import TitleBar from "./lib/TitleBar.svelte";
+  import "./lib/theme.svelte.ts";
 
   const isUpdaterWindow =
     new URLSearchParams(window.location.search).get("view") === "updater";
@@ -128,12 +130,16 @@
 </script>
 
 {#if isUpdaterWindow}
-  <UpdateDialog />
+  <main class="flex flex-col h-screen bg-surface text-content overflow-hidden select-none">
+    <TitleBar />
+    <UpdateDialog />
+  </main>
 {:else}
-  <main class="flex flex-col h-screen bg-[#0d1117] text-white overflow-hidden select-none">
+  <main class="flex flex-col h-screen bg-surface text-content overflow-hidden select-none">
+    <TitleBar />
     {#if checkingAuth}
       <div class="flex items-center justify-center h-full">
-        <div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        <div class="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
       </div>
     {:else if !isAuthed}
       <AuthScreen onSuccess={handleAuthSuccess} />

@@ -7,7 +7,7 @@
   let { pr }: Props = $props();
 
   let color = $derived.by(() => {
-    if (pr.state === "merged") return "bg-purple-500";
+    if (pr.state === "merged") return "bg-accent";
     if (pr.is_draft) return "bg-gray-500";
     if (pr.merge_queue_info) return "bg-yellow-500";
     switch (pr.check_status) {

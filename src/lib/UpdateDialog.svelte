@@ -69,49 +69,49 @@
   });
 </script>
 
-<div class="flex flex-col items-center justify-center h-screen bg-[#0d1117] text-white p-6 select-none">
+<div class="flex flex-col items-center justify-center flex-1 min-h-0 bg-surface text-content p-6 select-none">
   {#if viewState === "checking"}
-    <div class="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p class="text-sm text-gray-400">Checking for updates...</p>
+    <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
+    <p class="text-sm text-content-secondary">Checking for updates...</p>
 
   {:else if viewState === "up_to_date"}
     <CheckCircle size={40} class="text-green-400 mb-3" />
     <p class="text-lg font-medium mb-1">You're up to date</p>
-    <p class="text-sm text-gray-400">Version {currentVersion}</p>
+    <p class="text-sm text-content-secondary">Version {currentVersion}</p>
 
   {:else if viewState === "available"}
-    <Download size={40} class="text-purple-400 mb-3" />
+    <Download size={40} class="text-accent mb-3" />
     <p class="text-lg font-medium mb-1">Update available</p>
-    <p class="text-sm text-gray-400 mb-3">Version {newVersion}</p>
+    <p class="text-sm text-content-secondary mb-3">Version {newVersion}</p>
     {#if releaseNotes}
-      <div class="w-full max-h-24 overflow-y-auto text-xs text-gray-500 bg-[#161b22] rounded p-2 mb-4 whitespace-pre-wrap">
+      <div class="w-full max-h-24 overflow-y-auto text-xs text-content-tertiary bg-surface-secondary rounded p-2 mb-4 whitespace-pre-wrap">
         {releaseNotes}
       </div>
     {/if}
     <button
       onclick={installUpdate}
-      class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm font-medium transition-colors"
+      class="px-4 py-2 bg-accent hover:bg-accent-hover rounded text-sm font-medium transition-colors"
     >
       Install &amp; Restart
     </button>
 
   {:else if viewState === "downloading"}
-    <p class="text-sm text-gray-400 mb-3">Downloading update...</p>
-    <div class="w-full bg-[#161b22] rounded-full h-2 mb-2">
+    <p class="text-sm text-content-secondary mb-3">Downloading update...</p>
+    <div class="w-full bg-surface-secondary rounded-full h-2 mb-2">
       <div
-        class="bg-purple-500 h-2 rounded-full transition-all duration-200"
+        class="bg-accent h-2 rounded-full transition-all duration-200"
         style="width: {downloadProgress}%"
       ></div>
     </div>
-    <p class="text-xs text-gray-500">{Math.round(downloadProgress)}%</p>
+    <p class="text-xs text-content-tertiary">{Math.round(downloadProgress)}%</p>
 
   {:else if viewState === "error"}
     <AlertCircle size={40} class="text-red-400 mb-3" />
     <p class="text-lg font-medium mb-1">Update failed</p>
-    <p class="text-sm text-gray-400 mb-3 text-center max-w-xs">{errorMessage}</p>
+    <p class="text-sm text-content-secondary mb-3 text-center max-w-xs">{errorMessage}</p>
     <button
       onclick={checkForUpdate}
-      class="px-4 py-2 bg-[#161b22] hover:bg-[#1c2129] rounded text-sm font-medium transition-colors"
+      class="px-4 py-2 bg-surface-secondary hover:bg-surface-hover rounded text-sm font-medium transition-colors"
     >
       Retry
     </button>
