@@ -26,6 +26,8 @@
   let unlistenAuth: (() => void) | undefined;
 
   async function init() {
+    // Load settings independently — they're local and should not fail with network errors
+    void loadSettings();
     try {
       isAuthed = await invoke<boolean>("is_authenticated_cmd");
       if (isAuthed) {
@@ -38,16 +40,23 @@
     }
   }
 
+  async function loadSettings() {
+    try {
+      const s = await invoke<UserSettings>("get_settings_cmd");
+      if (s) settings = s;
+    } catch (e) {
+      console.error("[app] Failed to load settings:", e);
+    }
+  }
+
   async function loadData() {
     try {
-      const [prs, user, s] = await Promise.all([
+      const [prs, user] = await Promise.all([
         invoke<PullRequest[]>("get_pull_requests_cmd"),
         invoke<GitHubUser>("get_user_info_cmd"),
-        invoke<UserSettings>("get_settings_cmd"),
       ]);
       prList = prs;
       userInfo = user;
-      if (s) settings = s;
       lastUpdated = new Date();
     } catch (e) {
       console.error("[app] Failed to load data:", e);
@@ -119,7 +128,7 @@
   {:else if view === "settings"}
     <SettingsPage
       prs={prList}
-      onBack={() => { view = "panel"; void loadData(); }}
+      onBack={() => { view = "panel"; void loadSettings(); }}
     />
   {:else}
     <PRPanel
