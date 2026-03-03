@@ -8,13 +8,8 @@ export default {
         coder: {
           white: "#FFFFFF",
           black: "#090B0B",
-          magenta: "#F08DFF",
-          purple: "#BC7CFF",
           ember: "#FF8067",
-          orchid: "#9900B1",
-          violet: "#7511E2",
           sunset: "#A13000",
-          haze: "#A19CC8",
           glacier: "#B8D7F5",
           sky: "#A4E8F2",
           twilight: "#4A408F",
