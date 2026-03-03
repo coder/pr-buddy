@@ -5,6 +5,8 @@
   "windows": ["main", "updater"],
   "permissions": [
     "core:default",
+    "core:window:allow-minimize",
+    "core:window:allow-hide",
     "notification:default",
     "opener:default",
     "stronghold:default",
