@@ -2,7 +2,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Minus from "@lucide/svelte/icons/minus";
   import X from "@lucide/svelte/icons/x";
-  import appIcon from "../assets/icon-32.png";
+  import Bell from "@lucide/svelte/icons/bell";
 </script>
 
 <div
@@ -11,7 +11,7 @@
          bg-surface border-b border-border shrink-0 select-none"
 >
   <div class="flex items-center gap-2 pointer-events-none">
-    <img src={appIcon} alt="" class="w-4 h-4" />
+    <Bell size={16} class="text-content-secondary" />
     <span class="text-xs font-semibold text-content">PR Buddy</span>
   </div>
   <div class="flex items-center gap-0.5">
