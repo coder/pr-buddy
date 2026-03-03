@@ -112,7 +112,7 @@ describe("PRPanel", () => {
         onOpenSettings: () => {},
       },
     });
-    expect(screen.getByText("PR Buddy")).toBeTruthy();
+    expect(screen.getByText("Approved")).toBeTruthy();
   });
 });
 

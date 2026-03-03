@@ -1,5 +1,4 @@
 <script lang="ts">
-  import Bell from "@lucide/svelte/icons/bell";
   import Inbox from "@lucide/svelte/icons/inbox";
   import PartyPopper from "@lucide/svelte/icons/party-popper";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
@@ -42,12 +41,10 @@
 </script>
 
 <!-- Header -->
-<div class="flex items-center justify-between px-4 py-3 border-b border-gray-800 shrink-0">
+<div class="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
   <div class="flex items-center gap-2">
-    <Bell size={16} class="text-gray-400" />
-    <h1 class="text-sm font-semibold text-white">PR Buddy</h1>
     {#if totalPrs > 0}
-      <span class="text-[10px] bg-purple-600 text-white px-1.5 py-0.5 rounded-full font-medium">
+      <span class="text-[10px] bg-accent text-white px-1.5 py-0.5 rounded-full font-medium">
         {totalPrs}
       </span>
     {/if}
@@ -57,19 +54,19 @@
       <img
         src={user.avatar_url}
         alt={user.login}
-        class="w-6 h-6 rounded-full ring-1 ring-gray-700"
+        class="w-6 h-6 rounded-full ring-1 ring-border"
       />
     {/if}
     <button
       onclick={onOpenSettings}
-      class="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded hover:bg-[#1e1e2e]"
+      class="text-content-tertiary hover:text-content transition-colors p-1 rounded hover:bg-surface-hover"
       title="Settings"
     >
       <Settings size={16} />
     </button>
     <button
       onclick={onLogout}
-      class="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded hover:bg-[#1e1e2e]"
+      class="text-content-tertiary hover:text-content transition-colors p-1 rounded hover:bg-surface-hover"
       title="Sign out"
     >
       <LogOut size={16} />
@@ -80,14 +77,14 @@
 <!-- Body -->
 <div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
   {#if prs.length === 0}
-    <div class="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
-      <Inbox size={24} class="text-gray-500" />
+    <div class="flex flex-col items-center justify-center h-full text-content-tertiary gap-2">
+      <Inbox size={24} class="text-content-tertiary" />
       <p class="text-sm">No pull requests found</p>
-      <p class="text-xs text-gray-600">Your PRs will appear here</p>
+      <p class="text-xs text-content-tertiary">Your PRs will appear here</p>
     </div>
   {:else if sections.length === 0}
-    <div class="flex flex-col items-center justify-center h-full text-gray-500 gap-2">
-      <PartyPopper size={24} class="text-gray-500" />
+    <div class="flex flex-col items-center justify-center h-full text-content-tertiary gap-2">
+      <PartyPopper size={24} class="text-content-tertiary" />
       <p class="text-sm">All clear!</p>
     </div>
   {:else}
@@ -100,15 +97,15 @@
 </div>
 
 <!-- Footer -->
-<div class="flex items-center justify-between px-4 py-2 border-t border-gray-800 shrink-0">
-  <span class="text-[11px] text-gray-600">
+<div class="flex items-center justify-between px-4 py-2 border-t border-border shrink-0">
+  <span class="text-[11px] text-content-tertiary">
     Updated {relativeTime(lastUpdated)}
   </span>
   <div class="flex items-center gap-1">
     <button
       onclick={() => openUrl("https://github.com/pulls")}
-      class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
-             transition-colors py-1 px-2 rounded hover:bg-[#1e1e2e]"
+      class="flex items-center gap-1 text-[11px] text-content-tertiary hover:text-content-secondary
+             transition-colors py-1 px-2 rounded hover:bg-surface-hover"
     >
       <ExternalLink size={12} />
       See all
@@ -116,8 +113,8 @@
     <button
       onclick={onRefresh}
       disabled={refreshing}
-      class="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300
-             transition-colors disabled:opacity-50 py-1 px-2 rounded hover:bg-[#1e1e2e]"
+      class="flex items-center gap-1 text-[11px] text-content-tertiary hover:text-content-secondary
+             transition-colors disabled:opacity-50 py-1 px-2 rounded hover:bg-surface-hover"
     >
       <RefreshCw size={12} class={refreshing ? "animate-spin" : ""} />
       Refresh
