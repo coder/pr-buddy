@@ -324,6 +324,7 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                 )
                 .title("PR Buddy — Updates")
                 .inner_size(400.0, 300.0)
+                .decorations(false)
                 .resizable(false)
                 .center()
                 .build();
