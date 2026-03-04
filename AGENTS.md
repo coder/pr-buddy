@@ -31,16 +31,21 @@ PR Buddy is a lightweight, cross-platform system tray desktop app that monitors 
 ```
 pr-buddy/
 ├── src/                          # Svelte 5 frontend
-│   ├── App.svelte                # Root component (auth routing, event listener)
+│   ├── App.svelte                # Root component (auth routing + event listeners)
 │   ├── main.ts                   # Entry point, mounts App
 │   ├── lib/
 │   │   ├── types.ts              # TS interfaces mirroring Rust models (snake_case)
-│   │   ├── stores.ts             # Svelte stores + groupPrs() section logic
+│   │   ├── stores.ts             # groupPrs() + shared writable stores
 │   │   ├── AuthScreen.svelte     # GitHub Device Flow login UI
 │   │   ├── PRPanel.svelte        # Main panel with grouped sections
 │   │   ├── PRSection.svelte      # Collapsible section group
 │   │   ├── PRCard.svelte         # Individual PR row
-│   │   └── StatusBadge.svelte    # Color-coded status dot
+│   │   ├── SettingsPage.svelte   # Notification/theme/repo visibility settings
+│   │   ├── UpdateDialog.svelte   # In-app updater UI
+│   │   ├── TitleBar.svelte       # Custom frameless title bar controls
+│   │   ├── StatusBadge.svelte    # Color-coded status dot
+│   │   └── theme.svelte.ts       # Global theme preference + dark-mode toggling
+│   ├── __mocks__/                # Tauri API stubs for vitest/jsdom
 │   └── styles/
 │       └── app.css               # Tailwind directives + dark theme overrides
 ├── src-tauri/                    # Rust backend
@@ -52,20 +57,27 @@ pr-buddy/
 │   └── src/
 │       ├── main.rs               # Desktop entry: calls lib::run()
 │       ├── lib.rs                # Tauri setup: plugins, tray, commands, poller
-│       ├── models.rs             # Data types: PullRequest, PrState, CheckStatus, etc.
+│       ├── models.rs             # Shared data types (PullRequest, PrState, etc.)
 │       ├── state.rs              # AppState (Mutex-wrapped shared state)
-│       ├── auth.rs               # Device Flow OAuth commands
+│       ├── auth.rs               # Device Flow OAuth + token persistence
 │       ├── github.rs             # GraphQL client + Tauri commands
+│       ├── menu.rs               # Native tray menu construction + section grouping
 │       ├── poller.rs             # Background adaptive polling loop
-│       └── notifications.rs      # Event diffing + OS notification dispatch
+│       ├── notifications.rs      # Event diffing + OS notification dispatch
+│       ├── settings.rs           # User settings load/save + IPC commands
+│       ├── updater.rs            # Update check/install commands + events
+│       └── avatars.rs            # Avatar fetch/cache for tray menu icons
 ├── scripts/
-│   ├── generate_icons.py         # Python3+Pillow icon generator (idempotent)
-│   └── smoke-test.sh             # Dev server import smoke test
-├── src/__mocks__/                # Tauri API stubs for vitest/jsdom
+│   ├── smoke-test.sh             # Vite dev import-resolution smoke test
+│   ├── check_pr_reviews.sh       # CI helper: unresolved review thread check
+│   ├── check_codex_comments.sh   # CI helper: Codex approval/comment status
+│   ├── wait_pr_checks.sh         # Poll helper: wait until checks/mergeability pass
+│   ├── wait_pr_codex.sh          # Poll helper: wait for Codex final signal
+│   └── generate_icons.py         # Python icon generator (cairosvg + Pillow)
 ├── package.json
-├── Makefile                      # dev/build/check/test/smoke/ci targets
+├── Makefile                      # install/dev/build/check/test/smoke/ci/clean targets
 ├── vite.config.ts
-├── vitest.config.ts              # Test runner config (jsdom + Tauri mocks)
+├── vitest.config.ts              # Test config (jsdom + Tauri mocks)
 ├── svelte.config.js
 ├── tailwind.config.js
 ├── postcss.config.js
@@ -74,14 +86,16 @@ pr-buddy/
 
 ### Key Files
 
-- **`src-tauri/src/lib.rs`** — App entry point. Registers all plugins, builds the tray icon, wires Tauri commands, starts the background poller.
-- **`src-tauri/src/models.rs`** — Canonical data types shared across backend. Frontend types in `src/lib/types.ts` must stay in sync (use `snake_case` field names, matching Rust's `#[serde(rename_all = "lowercase")]`).
-- **`src-tauri/src/auth.rs`** — GitHub Device Flow. Client ID is hardcoded with env var override (`GITHUB_CLIENT_ID`).
-- **`src-tauri/src/poller.rs`** — Adaptive polling: 30s when PRs have pending checks or are in merge queue, 120s otherwise.
-- **`src-tauri/src/notifications.rs`** — `diff_pr_states()` compares old/new PR snapshots to detect state transitions.
-- **`src-tauri/tauri.conf.json`** — Window is hidden by default (tray-only), 380×520px, no decorations, `alwaysOnTop`.
-- **`src/lib/stores.ts`** — `groupPrs()` categorises PRs into ordered sections (merge queue → failing → changes requested → waiting → approved → draft → merged).
-- **`src/App.svelte`** — Root component. Handles auth check, Tauri event subscription (`prs-updated`), routing between AuthScreen and PRPanel.
+- **`src-tauri/src/lib.rs`** — App entry point. Registers plugins, tray, IPC commands, menu events, and starts the poller.
+- **`src-tauri/src/models.rs`** + **`src/lib/types.ts`** — Canonical cross-layer types. Keep fields and enum values in sync.
+- **`src-tauri/src/menu.rs`** + **`src/lib/stores.ts`** — Two implementations of PR grouping (tray menu + Svelte panel). Keep section logic aligned.
+- **`src-tauri/src/auth.rs`** — GitHub Device Flow plus persisted token load/save/delete.
+- **`src-tauri/src/settings.rs`** — User settings storage (`settings.json`) and settings commands.
+- **`src-tauri/src/updater.rs`** + **`src/lib/UpdateDialog.svelte`** — Update check/install flow and download progress events.
+- **`src-tauri/src/poller.rs`** — Adaptive polling (30s active / 120s idle) plus periodic update checks.
+- **`src-tauri/src/notifications.rs`** — `diff_pr_states()` and notification dispatch (gated by settings).
+- **`src-tauri/tauri.conf.json`** — Hidden-by-default tray window (380×520), CSP allowlist, updater endpoint config.
+- **`src/App.svelte`** — Root runtime: auth bootstrap, event listeners (`prs-updated`, `auth-cleared`, `open-settings`), and view routing.
 
 ### Tauri Commands (IPC boundary)
 
@@ -94,14 +108,21 @@ All commands are registered in `lib.rs` via `invoke_handler`. Frontend calls the
 | `logout_cmd` | auth.rs | `()` |
 | `is_authenticated_cmd` | auth.rs | `bool` |
 | `get_pull_requests_cmd` | github.rs | `Vec<PullRequest>` |
-| `get_user_info_cmd` | github.rs | `GitHubUser` |
+| `get_user_info_cmd` | github.rs | `Option<GitHubUser>` |
 | `refresh_prs_cmd` | github.rs | `Vec<PullRequest>` |
+| `get_settings_cmd` | settings.rs | `UserSettings` |
+| `save_settings_cmd` | settings.rs | `()` |
+| `check_for_update_cmd` | updater.rs | `UpdateCheckResult` |
+| `install_update_cmd` | updater.rs | `()` |
 
 ### Tauri Events
 
 | Event | Direction | Payload |
 |-------|-----------|---------|
 | `prs-updated` | Rust → Frontend | `PullRequest[]` |
+| `auth-cleared` | Rust → Frontend | `()` |
+| `open-settings` | Rust → Frontend | `()` |
+| `update-download-progress` | Rust → Frontend | `{ chunk_length, content_length }` |
 
 ### Linux Prerequisites
 
@@ -121,31 +142,42 @@ The `.deb` and `.rpm` bundles declare this as a package dependency so it install
 # Install frontend dependencies (required before any other command)
 npm install         # or: make install
 
-# Full Tauri app — Rust backend + Vite frontend (requires Rust 1.77+)
+# Full desktop dev loop (Tauri backend + Vite frontend)
 make dev            # or: npm run dev
 
-# Build release binary (output in src-tauri/target/release/bundle/)
-make build          # or: npm run build
-
-# Frontend-only dev server (no Rust compilation, for UI iteration)
+# Frontend-only dev server (no Rust compilation)
 npm run vite:dev
 
-# Frontend production build only
-npm run vite:build
+# Production builds
+make build          # or: npm run build
+npm run vite:build  # frontend-only production bundle
 
-# TypeScript + Svelte type checking
+# Type-check + tests
 make check          # or: npm run check
-
-# Run component tests (vitest + jsdom)
 make test           # or: npm run test
-
-# Smoke test — starts Vite dev server and verifies no import errors
 make smoke          # or: npm run smoke
 
-# Run ALL pre-push checks (check + test + smoke + build)
+# Rust checks (run when touching src-tauri)
+(cd src-tauri && cargo check)
+
+# Formatting
+(cd src-tauri && cargo fmt)
+# Frontend: no dedicated formatter script is configured yet.
+
+# Linting
+(cd src-tauri && cargo clippy -- -D warnings)
+# Frontend: no ESLint script is configured yet.
+
+# CI shortcut (check + test + smoke + build)
 make ci
 
-# Regenerate app icons (requires Python 3 + Pillow)
+# PR workflow helper scripts
+./scripts/check_pr_reviews.sh <pr_number>
+./scripts/check_codex_comments.sh <pr_number>
+./scripts/wait_pr_checks.sh <pr_number>
+./scripts/wait_pr_codex.sh <pr_number>
+
+# Regenerate app and tray icons (requires Python 3, cairosvg, Pillow)
 python3 scripts/generate_icons.py
 
 # Clean build artifacts
@@ -172,9 +204,32 @@ export type PrState = "open" | "closed" | "merged";
 
 When adding a field to `PullRequest`, update **both** `models.rs` and `types.ts`.
 
+### Frontend ↔ Tray Section Parity
+
+PR grouping logic exists in **two places**:
+- `src/lib/stores.ts` (`groupPrs()` for the Svelte panel)
+- `src-tauri/src/menu.rs` (`group_prs()` for the native tray menu)
+
+When adding/removing/renaming a section, update both implementations in the same change.
+Also update assertions in `src/lib/components.test.ts` so section behavior stays covered.
+
+### Interpreting User Requests (Tray-First Default)
+
+This app has two UI surfaces:
+- **Native tray menu** (Rust): `src-tauri/src/menu.rs`
+- **Svelte webview panel/windows**: `src/App.svelte` + `src/lib/*.svelte`
+
+When a user asks for a "UI", "menu", "section", or "status" change **without naming a surface**, assume they mean the **native tray menu first**. Most day-to-day usability is in the tray.
+
+Only treat a request as webview-only when the user explicitly references panel/window behavior (for example: settings page, updater dialog, title bar, Auth screen, PR cards).
+
+If both surfaces are plausible, either:
+1. ask a clarifying question, or
+2. state the assumption explicitly and implement tray-first.
+
 ### Tauri Command Pattern
 
-Rust commands use `#[tauri::command]` and return `Result<T, AuthError>`. The `AuthError` type implements `Serialize` so Tauri can pass errors to the frontend. Commands access shared state via `State<'_, AppState>`:
+Rust commands use `#[tauri::command]` and return `Result<T, E>` where `E` is serializable (`AuthError` for auth/github commands, `String` for settings/updater). Commands that need shared state access it via `State<'_, AppState>`:
 
 ```rust
 #[tauri::command]
@@ -227,6 +282,8 @@ Do **not** write `onMount(async () => { ... return cleanup; })`.
 ## Anti-Patterns
 
 - **Do not change `npm run dev`/`npm run build` to call Vite.** These must call `tauri dev`/`tauri build`. Frontend-only scripts are `vite:dev`/`vite:build`.
+- **Do not update PR section grouping in only one layer.** `src/lib/stores.ts` and `src-tauri/src/menu.rs` must stay in sync, and `src/lib/components.test.ts` should be updated when section behavior changes.
+- **Do not assume ambiguous UX requests target the Svelte webview.** Default to tray-menu changes unless the user clearly asks for panel/window behavior.
 - **Do not pass arguments to `TrayIconBuilder::new()`.** Tauri v2.10 takes zero arguments. Use `.icon()` to set the icon separately.
 - **Do not use `async` `onMount` callbacks that return cleanup functions** in Svelte 5 — it causes type errors. See the pattern above.
 - **Do not use the bundle identifier `com.prbuddy.app`.** The `.app` suffix conflicts with macOS bundle extensions. Current identifier: `com.prbuddy.dev`.
@@ -286,7 +343,7 @@ Common prefixes: `feat`, `fix`, `chore`, `refactor`, `docs`.
 
 1. Run `make ci` — this runs type-check, unit tests, smoke test, and production build in sequence.
 2. Alternatively, run them individually: `npm run check`, `npm run test`, `npm run smoke`, `npm run vite:build`.
-3. If Rust code changed and Rust 1.77+ is available, run `cargo check` in `src-tauri/`.
+3. If Rust code changed and Rust 1.77+ is available, run `(cd src-tauri && cargo fmt && cargo clippy -- -D warnings && cargo check)`.
 4. Do not push to `origin/main` or `origin/master` directly.
 5. Branch names must be prefixed with `mike/` (e.g., `mike/fix-tray-click`).
 6. **Do not claim imports or dependencies work without running `make smoke`** — `vite build` and `svelte-check` do not catch all import resolution errors that appear in the Vite dev server.
