@@ -274,6 +274,9 @@ pub fn build_auth_pending_menu(
 /// Title is dynamically truncated so the suffix (comments + age) right-aligns.
 const MAX_LABEL_WIDTH: usize = 55;
 
+/// Minimum characters reserved for the title so it is never fully hidden.
+const MIN_TITLE_WIDTH: usize = 6;
+
 /// Format a PR label with fixed total width and right-aligned suffix.
 fn format_pr_label(pr: &PullRequest, age: &str) -> String {
     // Build the right-aligned suffix first so we know how much space the title gets.
@@ -287,13 +290,17 @@ fn format_pr_label(pr: &PullRequest, age: &str) -> String {
 
     let prefix_len = prefix.chars().count();
     let suffix_len = suffix.chars().count();
-    let title_budget = MAX_LABEL_WIDTH.saturating_sub(prefix_len + suffix_len);
+    // Guarantee a minimum title width even when the prefix + suffix are unusually wide.
+    let title_budget = MAX_LABEL_WIDTH
+        .saturating_sub(prefix_len + suffix_len)
+        .max(MIN_TITLE_WIDTH);
 
     let title = truncate(&pr.title, title_budget);
     let title_len = title.chars().count();
 
     // Pad between title and suffix so suffix is right-aligned to MAX_LABEL_WIDTH.
-    let pad = MAX_LABEL_WIDTH.saturating_sub(prefix_len + title_len + suffix_len);
+    let used = prefix_len + title_len + suffix_len;
+    let pad = MAX_LABEL_WIDTH.saturating_sub(used);
     let padding = " ".repeat(pad);
 
     format!("{}{}{}{}", prefix, title, padding, suffix)
