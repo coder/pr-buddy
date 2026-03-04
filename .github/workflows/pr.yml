@@ -127,8 +127,8 @@ jobs:
               echo "✅ Codex review approved"
               ;;
             10)
-              echo "⏳ Codex review not yet received — this is OK, not blocking."
-              echo "Request a review with: @codex review"
+              echo "⏳ Codex review not yet received — request one with: @codex review"
+              exit 1
               ;;
             *)
               echo "❌ Codex review has comments to address"

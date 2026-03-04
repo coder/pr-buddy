@@ -67,6 +67,11 @@ GRAPHQL_QUERY='query($owner: String!, $repo: String!, $pr: Int!) {
           user { login }
         }
       }
+      commits(last: 1) {
+        nodes {
+          commit { pushedDate }
+        }
+      }
     }
   }
 }'
@@ -82,9 +87,15 @@ if [ "$(echo "$data" | jq -r '.data.repository.pullRequest == null')" = "true" ]
   exit 1
 fi
 
-# Check for thumbs-up reaction from Codex bot
-has_thumbsup=$(echo "$data" | jq -r --arg bot "$BOT_LOGIN" \
-  '[.data.repository.pullRequest.reactions.nodes[]? | select(.user.login == $bot)] | length')
+# Check for thumbs-up reaction from Codex bot (must be after latest push)
+last_push=$(echo "$data" | jq -r \
+  '.data.repository.pullRequest.commits.nodes[-1].commit.pushedDate // empty')
+
+has_thumbsup=$(echo "$data" | jq -r --arg bot "$BOT_LOGIN" --arg since "${last_push:-}" \
+  '[.data.repository.pullRequest.reactions.nodes[]?
+    | select(.user.login == $bot)
+    | select($since == "" or .createdAt > $since)
+  ] | length')
 
 if [ "$has_thumbsup" -gt 0 ]; then
   echo "✅ Codex approved (👍 reaction on PR description)"
