@@ -1,7 +1,7 @@
 # Windows EV code signing script for Tauri signCommand
 # Uses jsign with GCP Cloud KMS for EV certificate signing
 #
-# Called by Tauri as: powershell -File scripts/sign-windows.ps1 <file_path>
+# Called by Tauri as: pwsh -File scripts/sign-windows.ps1 <file_path>
 #
 # Required environment variables:
 #   JSIGN_PATH          - Path to jsign JAR file

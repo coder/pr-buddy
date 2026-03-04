@@ -92,7 +92,10 @@ jobs:
           {
             "bundle": {
               "windows": {
-                "signCommand": "powershell -File scripts/sign-windows.ps1 \"%1\""
+                "signCommand": {
+                  "cmd": "pwsh",
+                  "args": ["-File", "scripts/sign-windows.ps1", "%1"]
+                }
               }
             }
           }
