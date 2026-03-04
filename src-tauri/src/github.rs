@@ -46,7 +46,7 @@ const PR_FRAGMENT: &str = r#"id
         mergeQueueEntry {
           state
           position
-        }";
+        }"#;
 
 fn build_pr_query() -> String {
     let since = chrono::Utc::now() - chrono::Duration::days(14);
