@@ -121,9 +121,10 @@ pub fn start_polling(app_handle: AppHandle) {
                                     *current = None;
                                     drop(current);
                                     auth::delete_token_from_disk(&app_handle);
-                                    // Clear cached PR state to avoid stale data on re-login
+                                    // Clear cached state to avoid stale data on re-login
                                     state.prs.lock().unwrap().clear();
                                     state.previous_prs.lock().unwrap().clear();
+                                    *state.user.lock().unwrap() = None;
                                     {
                                         let tray_guard = state.tray.lock().unwrap();
                                         if let Some(tray) = tray_guard.as_ref() {

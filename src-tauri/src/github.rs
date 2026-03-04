@@ -188,7 +188,6 @@ pub async fn fetch_pull_requests(token: &str) -> Result<Vec<PullRequest>, AuthEr
     Ok(nodes.iter().filter_map(parse_pr_node).collect())
 }
 
-#[allow(dead_code)] // Called via Tauri IPC (get_user_info_cmd)
 pub async fn fetch_user_info(token: &str) -> Result<GitHubUser, AuthError> {
     let client = Client::new();
 
@@ -245,8 +244,33 @@ pub async fn get_pull_requests_cmd(
 pub async fn get_user_info_cmd(
     state: State<'_, AppState>,
 ) -> Result<Option<GitHubUser>, AuthError> {
-    let user = state.user.lock().unwrap();
-    Ok(user.clone())
+    // Return cached user if available
+    {
+        let user = state.user.lock().unwrap();
+        if user.is_some() {
+            return Ok(user.clone());
+        }
+    }
+    // Fetch from GitHub if we have a token but no cached user
+    let token = {
+        let t = state.token.lock().unwrap();
+        t.clone()
+    };
+    if let Some(token) = token {
+        let user_info = fetch_user_info(&token).await?;
+        // Only cache and return if the token hasn't changed during the fetch
+        // (guards against logout/account-switch racing with the request)
+        let current_token = state.token.lock().unwrap().clone();
+        if current_token.as_deref() == Some(token.as_str()) {
+            let mut cached = state.user.lock().unwrap();
+            *cached = Some(user_info.clone());
+            Ok(Some(user_info))
+        } else {
+            Ok(None)
+        }
+    } else {
+        Ok(None)
+    }
 }
 
 #[tauri::command]

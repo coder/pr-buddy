@@ -57,17 +57,20 @@
   }
 
   async function loadData() {
-    try {
-      const [prs, user] = await Promise.all([
-        invoke<PullRequest[]>("get_pull_requests_cmd"),
-        invoke<GitHubUser>("get_user_info_cmd"),
-      ]);
-      prList = prs;
-      userInfo = user;
-      lastUpdated = new Date();
-    } catch (e) {
-      console.error("[app] Failed to load data:", e);
-    }
+    // Fetch PRs and user info independently so a failure in one
+    // doesn't block the other (user-info can fail on cache miss).
+    const prsPromise = invoke<PullRequest[]>("refresh_prs_cmd").catch(async (e) => {
+      console.error("[app] Refresh failed, falling back to cache:", e);
+      return invoke<PullRequest[]>("get_pull_requests_cmd");
+    });
+    const userPromise = invoke<GitHubUser>("get_user_info_cmd").catch((e) => {
+      console.error("[app] Failed to load user info:", e);
+      return null;
+    });
+    const [prs, user] = await Promise.all([prsPromise, userPromise]);
+    prList = prs;
+    if (user) userInfo = user;
+    lastUpdated = new Date();
   }
 
   async function handleRefresh() {
@@ -103,8 +106,24 @@
     // Await listener registration before init() so we don't miss
     // an auth-cleared event from fast startup token validation.
     unlisten = await listen<PullRequest[]>("prs-updated", (event) => {
-      prList = event.payload;
-      lastUpdated = new Date();
+      if (isAuthed) {
+        prList = event.payload;
+        lastUpdated = new Date();
+      } else {
+        // Might be a tray login — verify the backend still has a token
+        // before switching to authenticated (avoids resurrecting a
+        // logged-out session from a late poller event).
+        invoke<boolean>("is_authenticated_cmd").then((authed) => {
+          if (authed) {
+            isAuthed = true;
+            prList = event.payload;
+            lastUpdated = new Date();
+            invoke<GitHubUser>("get_user_info_cmd")
+              .then((user) => { if (user) userInfo = user; })
+              .catch((e) => console.error("[app] Failed to load user info:", e));
+          }
+        }).catch((e) => console.error("[app] Auth check in prs-updated failed:", e));
+      }
     });
     unlistenAuth = await listen("auth-cleared", () => {
       isAuthed = false;
@@ -112,7 +131,18 @@
       userInfo = null;
       lastUpdated = null;
     });
-    unlistenSettings = await listen("open-settings", () => {
+    unlistenSettings = await listen("open-settings", async () => {
+      // Re-check auth: user may have signed in via tray menu
+      if (!isAuthed) {
+        try {
+          isAuthed = await invoke<boolean>("is_authenticated_cmd");
+          if (isAuthed) {
+            await loadData();
+          }
+        } catch (e) {
+          console.error("[app] Re-auth check failed:", e);
+        }
+      }
       view = "settings";
     });
     await init();
