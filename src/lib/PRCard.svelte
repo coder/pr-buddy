@@ -51,17 +51,17 @@
         <span class="text-[10px] text-green-600">+{pr.additions}</span>
         <span class="text-[10px] text-red-500">-{pr.deletions}</span>
       {/if}
-      <!-- Comment count -->
-      {#if pr.comment_count > 0}
-        <span class="text-[11px] text-content-tertiary">·</span>
-        <span class="flex items-center gap-0.5 text-[10px] text-content-tertiary">
-          <MessageSquare size={10} />
-          {pr.comment_count}
-        </span>
-      {/if}
-      <!-- Time waiting -->
-      <span class="text-[11px] text-content-tertiary">·</span>
-      <span class="text-[10px] text-content-tertiary">{age}</span>
     </div>
+  </div>
+
+  <!-- Right-aligned metadata: comment count + age -->
+  <div class="shrink-0 flex items-center gap-1.5 text-content-tertiary">
+    {#if pr.comment_count > 0}
+      <span class="flex items-center gap-0.5 text-[10px]">
+        <MessageSquare size={10} />
+        {pr.comment_count}
+      </span>
+    {/if}
+    <span class="text-[10px]">{age}</span>
   </div>
 </button>
