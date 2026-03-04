@@ -1,5 +1,5 @@
 use tauri::AppHandle;
-use tauri::menu::{IconMenuItem, Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{IconMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 
 use crate::avatars::AvatarCache;
 use crate::models::{CheckStatus, PrState, PullRequest};
@@ -7,6 +7,7 @@ use crate::models::{CheckStatus, PrState, PullRequest};
 struct PrSection {
     title: String,
     prs: Vec<PullRequest>,
+    default_collapsed: bool,
 }
 
 /// Port of src/lib/stores.ts groupPrs() with tray-specific section ordering.
@@ -41,6 +42,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 .filter(|pr| pr.state == PrState::Open && pr.check_status == CheckStatus::Success)
                 .cloned()
                 .collect(),
+            default_collapsed: false,
         },
         PrSection {
             title: "In Merge Queue".into(),
@@ -49,6 +51,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 .filter(|pr| pr.merge_queue_info.is_some())
                 .cloned()
                 .collect(),
+            default_collapsed: false,
         },
         PrSection {
             title: "Checks Failing".into(),
@@ -61,6 +64,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 })
                 .cloned()
                 .collect(),
+            default_collapsed: false,
         },
         PrSection {
             title: "Changes Requested".into(),
@@ -74,6 +78,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 })
                 .cloned()
                 .collect(),
+            default_collapsed: false,
         },
         PrSection {
             title: "Waiting for Review".into(),
@@ -88,6 +93,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 })
                 .cloned()
                 .collect(),
+            default_collapsed: false,
         },
         PrSection {
             title: "Approved".into(),
@@ -101,10 +107,12 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 })
                 .cloned()
                 .collect(),
+            default_collapsed: false,
         },
         PrSection {
             title: "Draft".into(),
             prs: drafts,
+            default_collapsed: false,
         },
         PrSection {
             title: "Recently Merged".into(),
@@ -113,6 +121,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 .filter(|pr| pr.state == PrState::Merged)
                 .cloned()
                 .collect(),
+            default_collapsed: true,
         },
     ]
 }
@@ -138,42 +147,80 @@ pub fn build_pr_menu(
         }
         first = false;
 
-        // Section header (disabled)
-        let header_text = format!("{} ({})", section.title, section.prs.len());
-        let header = MenuItem::with_id(
-            app,
-            &format!("header_{}", section.title),
-            &header_text,
-            false,
-            None::<&str>,
-        )?;
-        menu.append(&header)?;
-
-        // PR items (max 5 per section)
-        let show_count = section.prs.len().min(5);
-        for pr in &section.prs[..show_count] {
-            let age = time_ago(&pr.created_at);
-            let mut label = format!(
-                "  {} #{} — {}",
-                pr.repository,
-                pr.number,
-                truncate(&pr.title, 32),
-            );
-            if pr.comment_count > 0 {
-                label.push_str(&format!("  💬{}", pr.comment_count));
-            }
-            label.push_str(&format!("  {}", age));
-
-            let icon = avatar_cache.get_image(&pr.author_login);
-            let item = IconMenuItem::with_id(
+        if section.default_collapsed {
+            let sub_title = format!("{} ({})", section.title, section.prs.len());
+            let submenu = Submenu::with_id(
                 app,
-                &format!("pr_{}", pr.id),
-                &label,
+                &format!("section_{}", section.title),
+                &sub_title,
                 true,
-                icon,
+            )?;
+
+            let show_count = section.prs.len().min(5);
+            for pr in &section.prs[..show_count] {
+                let age = time_ago(&pr.created_at);
+                let mut label = format!(
+                    "  {} #{} — {}",
+                    pr.repository,
+                    pr.number,
+                    truncate(&pr.title, 32),
+                );
+                if pr.comment_count > 0 {
+                    label.push_str(&format!("  💬{}", pr.comment_count));
+                }
+                label.push_str(&format!("  {}", age));
+
+                let icon = avatar_cache.get_image(&pr.author_login);
+                let item = IconMenuItem::with_id(
+                    app,
+                    &format!("pr_{}", pr.id),
+                    &label,
+                    true,
+                    icon,
+                    None::<&str>,
+                )?;
+                submenu.append(&item)?;
+            }
+
+            menu.append(&submenu)?;
+        } else {
+            // Section header (disabled)
+            let header_text = format!("{} ({})", section.title, section.prs.len());
+            let header = MenuItem::with_id(
+                app,
+                &format!("header_{}", section.title),
+                &header_text,
+                false,
                 None::<&str>,
             )?;
-            menu.append(&item)?;
+            menu.append(&header)?;
+
+            // PR items (max 5 per section)
+            let show_count = section.prs.len().min(5);
+            for pr in &section.prs[..show_count] {
+                let age = time_ago(&pr.created_at);
+                let mut label = format!(
+                    "  {} #{} — {}",
+                    pr.repository,
+                    pr.number,
+                    truncate(&pr.title, 32),
+                );
+                if pr.comment_count > 0 {
+                    label.push_str(&format!("  💬{}", pr.comment_count));
+                }
+                label.push_str(&format!("  {}", age));
+
+                let icon = avatar_cache.get_image(&pr.author_login);
+                let item = IconMenuItem::with_id(
+                    app,
+                    &format!("pr_{}", pr.id),
+                    &label,
+                    true,
+                    icon,
+                    None::<&str>,
+                )?;
+                menu.append(&item)?;
+            }
         }
 
     }
