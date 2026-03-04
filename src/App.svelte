@@ -59,7 +59,7 @@
   async function loadData() {
     try {
       const [prs, user] = await Promise.all([
-        invoke<PullRequest[]>("get_pull_requests_cmd"),
+        invoke<PullRequest[]>("refresh_prs_cmd"),
         invoke<GitHubUser>("get_user_info_cmd"),
       ]);
       prList = prs;
@@ -105,6 +105,13 @@
     unlisten = await listen<PullRequest[]>("prs-updated", (event) => {
       prList = event.payload;
       lastUpdated = new Date();
+      // Detect auth from tray login: if the poller sent PRs, we're authenticated
+      if (!isAuthed) {
+        isAuthed = true;
+        invoke<GitHubUser>("get_user_info_cmd")
+          .then((user) => { if (user) userInfo = user; })
+          .catch((e) => console.error("[app] Failed to load user info:", e));
+      }
     });
     unlistenAuth = await listen("auth-cleared", () => {
       isAuthed = false;
@@ -112,7 +119,18 @@
       userInfo = null;
       lastUpdated = null;
     });
-    unlistenSettings = await listen("open-settings", () => {
+    unlistenSettings = await listen("open-settings", async () => {
+      // Re-check auth: user may have signed in via tray menu
+      if (!isAuthed) {
+        try {
+          isAuthed = await invoke<boolean>("is_authenticated_cmd");
+          if (isAuthed) {
+            await loadData();
+          }
+        } catch (e) {
+          console.error("[app] Re-auth check failed:", e);
+        }
+      }
       view = "settings";
     });
     await init();
