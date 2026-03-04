@@ -50,6 +50,7 @@ pub struct PullRequest {
     pub review_decision: Option<String>,
     pub additions: u64,
     pub deletions: u64,
+    pub is_review_requested: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
