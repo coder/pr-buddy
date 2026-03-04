@@ -32,6 +32,7 @@ export interface PullRequest {
   review_decision: string | null;
   additions: number;
   deletions: number;
+  is_review_requested: boolean;
 }
 
 export interface GitHubUser {

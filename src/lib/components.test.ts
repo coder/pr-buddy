@@ -31,6 +31,7 @@ const mockPr: PullRequest = {
   review_decision: "APPROVED",
   additions: 10,
   deletions: 3,
+  is_review_requested: false,
 };
 
 const mockUser: GitHubUser = {
@@ -66,6 +67,27 @@ describe("groupPrs", () => {
     const sections = groupPrs([merged]);
     expect(sections).toHaveLength(1);
     expect(sections[0].title).toBe("Recently Merged");
+  });
+
+  it("puts review-requested checks-passed PRs in Needs Your Review section", () => {
+    const reviewPr = { ...mockPr, is_review_requested: true, check_status: "success" as const, review_decision: null };
+    const sections = groupPrs([reviewPr]);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].title).toBe("Needs Your Review");
+  });
+
+  it("excludes review-requested PRs with failing checks from Needs Your Review", () => {
+    const reviewPr = { ...mockPr, is_review_requested: true, check_status: "failure" as const };
+    const sections = groupPrs([reviewPr]);
+    expect(sections).toHaveLength(0);
+  });
+
+  it("does not mix review-requested PRs into authored sections", () => {
+    const myPr = { ...mockPr, is_review_requested: false };
+    const reviewPr = { ...mockPr, id: "PR_2", is_review_requested: true, check_status: "success" as const, review_decision: null };
+    const sections = groupPrs([myPr, reviewPr]);
+    expect(sections.find(s => s.title === "Needs Your Review")?.prs).toHaveLength(1);
+    expect(sections.find(s => s.title === "Approved")?.prs).toHaveLength(1);
   });
 });
 

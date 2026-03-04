@@ -8,6 +8,7 @@ import Loader from "@lucide/svelte/icons/loader";
 import CheckCircle from "@lucide/svelte/icons/check-circle";
 import FileEdit from "@lucide/svelte/icons/file-edit";
 import GitMerge from "@lucide/svelte/icons/git-merge";
+import UserCheck from "@lucide/svelte/icons/user-check";
 import type { PullRequest, GitHubUser, PrSection } from "./types";
 
 export const prs = writable<PullRequest[]>([]);
@@ -17,10 +18,20 @@ export const loading = writable(true);
 export const lastUpdated = writable<Date | null>(null);
 
 export function groupPrs(allPrs: PullRequest[]): PrSection[] {
-  const drafts = allPrs.filter(pr => pr.state === "open" && pr.is_draft);
-  const nonDraftOpen = allPrs.filter(pr => pr.state === "open" && !pr.is_draft);
+  const reviewRequested = allPrs.filter(pr => pr.is_review_requested);
+  const myPrs = allPrs.filter(pr => !pr.is_review_requested);
+
+  const drafts = myPrs.filter(pr => pr.state === "open" && pr.is_draft);
+  const nonDraftOpen = myPrs.filter(pr => pr.state === "open" && !pr.is_draft);
 
   const sections: PrSection[] = [
+    {
+      title: "Needs Your Review",
+      icon: UserCheck,
+      prs: reviewRequested.filter(pr =>
+        pr.state === "open" && pr.check_status === "success"
+      ),
+    },
     {
       title: "In Merge Queue",
       icon: Rocket,
@@ -92,7 +103,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
     {
       title: "Recently Merged",
       icon: GitMerge,
-      prs: allPrs.filter(pr => pr.state === "merged"),
+      prs: myPrs.filter(pr => pr.state === "merged"),
     },
   ];
 
