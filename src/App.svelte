@@ -103,14 +103,23 @@
     // Await listener registration before init() so we don't miss
     // an auth-cleared event from fast startup token validation.
     unlisten = await listen<PullRequest[]>("prs-updated", (event) => {
-      prList = event.payload;
-      lastUpdated = new Date();
-      // Detect auth from tray login: if the poller sent PRs, we're authenticated
-      if (!isAuthed) {
-        isAuthed = true;
-        invoke<GitHubUser>("get_user_info_cmd")
-          .then((user) => { if (user) userInfo = user; })
-          .catch((e) => console.error("[app] Failed to load user info:", e));
+      if (isAuthed) {
+        prList = event.payload;
+        lastUpdated = new Date();
+      } else {
+        // Might be a tray login — verify the backend still has a token
+        // before switching to authenticated (avoids resurrecting a
+        // logged-out session from a late poller event).
+        invoke<boolean>("is_authenticated_cmd").then((authed) => {
+          if (authed) {
+            isAuthed = true;
+            prList = event.payload;
+            lastUpdated = new Date();
+            invoke<GitHubUser>("get_user_info_cmd")
+              .then((user) => { if (user) userInfo = user; })
+              .catch((e) => console.error("[app] Failed to load user info:", e));
+          }
+        }).catch((e) => console.error("[app] Auth check in prs-updated failed:", e));
       }
     });
     unlistenAuth = await listen("auth-cleared", () => {
