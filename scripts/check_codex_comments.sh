@@ -69,7 +69,7 @@ GRAPHQL_QUERY='query($owner: String!, $repo: String!, $pr: Int!) {
       }
       commits(last: 1) {
         nodes {
-          commit { committedDate }
+          commit { pushedDate }
         }
       }
     }
@@ -89,7 +89,7 @@ fi
 
 # Check for thumbs-up reaction from Codex bot (must be after latest push)
 last_push=$(echo "$data" | jq -r \
-  '.data.repository.pullRequest.commits.nodes[-1].commit.committedDate // empty')
+  '.data.repository.pullRequest.commits.nodes[-1].commit.pushedDate // empty')
 
 has_thumbsup=$(echo "$data" | jq -r --arg bot "$BOT_LOGIN" --arg since "${last_push:-}" \
   '[.data.repository.pullRequest.reactions.nodes[]?
