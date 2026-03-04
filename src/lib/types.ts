@@ -72,4 +72,5 @@ export interface PrSection {
   title: string;
   icon: IconComponent;
   prs: PullRequest[];
+  defaultCollapsed?: boolean;
 }

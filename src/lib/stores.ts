@@ -93,6 +93,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       title: "Recently Merged",
       icon: GitMerge,
       prs: allPrs.filter(pr => pr.state === "merged"),
+      defaultCollapsed: true,
     },
   ];
 

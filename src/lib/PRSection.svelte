@@ -7,7 +7,7 @@
   }
   let { section }: Props = $props();
 
-  let collapsed = $state(false);
+  let collapsed = $state(section.defaultCollapsed ?? false);
   let visibleCount = $state(5);
   let SectionIcon = $derived(section.icon);
   let visiblePrs = $derived(section.prs.slice(0, visibleCount));
