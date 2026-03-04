@@ -59,7 +59,10 @@
   async function loadData() {
     try {
       const [prs, user] = await Promise.all([
-        invoke<PullRequest[]>("refresh_prs_cmd"),
+        invoke<PullRequest[]>("refresh_prs_cmd").catch(async (e) => {
+          console.error("[app] Refresh failed, falling back to cache:", e);
+          return invoke<PullRequest[]>("get_pull_requests_cmd");
+        }),
         invoke<GitHubUser>("get_user_info_cmd"),
       ]);
       prList = prs;
