@@ -289,11 +289,7 @@ fn format_pr_label(pr: &PullRequest, age: &str) -> String {
     let suffix_len = suffix.chars().count();
     let title_budget = MAX_LABEL_WIDTH.saturating_sub(prefix_len + suffix_len);
 
-    let title = if title_budget == 0 {
-        String::new()
-    } else {
-        truncate(&pr.title, title_budget)
-    };
+    let title = truncate(&pr.title, title_budget);
     let title_len = title.chars().count();
 
     // Pad between title and suffix so suffix is right-aligned to MAX_LABEL_WIDTH.
@@ -321,10 +317,15 @@ fn time_ago(iso: &str) -> String {
 }
 
 fn truncate(s: &str, max: usize) -> String {
+    if max == 0 {
+        return String::new();
+    }
     let mut chars = s.chars();
     let truncated: String = chars.by_ref().take(max).collect();
     if chars.next().is_some() {
-        format!("{}…", truncated)
+        // Reserve one char for the ellipsis so the result is exactly `max` chars.
+        let trimmed: String = truncated.chars().take(max - 1).collect();
+        format!("{}…", trimmed)
     } else {
         truncated
     }
