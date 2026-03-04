@@ -10,8 +10,23 @@ mod state;
 mod updater;
 
 use tauri::tray::TrayIconBuilder;
-use tauri::{Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_autostart::ManagerExt;
+
+#[tauri::command]
+pub fn is_autostart_enabled_cmd(app: AppHandle) -> Result<bool, String> {
+    Ok(app.autolaunch().is_enabled().unwrap_or(false))
+}
+
+#[tauri::command]
+pub fn set_autostart_cmd(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let result = if enabled {
+        app.autolaunch().enable()
+    } else {
+        app.autolaunch().disable()
+    };
+    result.map_err(|e| format!("Failed to set autostart: {}", e))
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -44,7 +59,9 @@ pub fn run() {
             settings::get_settings_cmd,
             settings::save_settings_cmd,
             updater::check_for_update_cmd,
-            updater::install_update_cmd
+            updater::install_update_cmd,
+            is_autostart_enabled_cmd,
+            set_autostart_cmd
         ])
         .setup(|app| {
             // Restore saved auth token from disk (if any)
@@ -202,30 +219,6 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
             });
         }
 
-        "autostart_toggle" => {
-            let currently_enabled = app.autolaunch().is_enabled().unwrap_or(false);
-            let toggle_result = if currently_enabled {
-                app.autolaunch().disable()
-            } else {
-                app.autolaunch().enable()
-            };
-            if let Err(e) = toggle_result {
-                eprintln!("[autostart] Failed to toggle autostart: {}", e);
-            }
-
-            let prs = {
-                let state = app.state::<state::AppState>();
-                let val = state.prs.lock().unwrap().clone();
-                val
-            };
-            let state = app.state::<state::AppState>();
-            let tray_guard = state.tray.lock().unwrap();
-            if let Some(tray) = tray_guard.as_ref() {
-                if let Ok(new_menu) = menu::build_pr_menu(app, &prs, &state.avatar_cache) {
-                    let _ = tray.set_menu(Some(new_menu));
-                }
-            }
-        }
 
         "sign_in" => {
             let app = app.clone();
