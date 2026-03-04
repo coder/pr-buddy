@@ -57,20 +57,20 @@
   }
 
   async function loadData() {
-    try {
-      const [prs, user] = await Promise.all([
-        invoke<PullRequest[]>("refresh_prs_cmd").catch(async (e) => {
-          console.error("[app] Refresh failed, falling back to cache:", e);
-          return invoke<PullRequest[]>("get_pull_requests_cmd");
-        }),
-        invoke<GitHubUser>("get_user_info_cmd"),
-      ]);
-      prList = prs;
-      userInfo = user;
-      lastUpdated = new Date();
-    } catch (e) {
-      console.error("[app] Failed to load data:", e);
-    }
+    // Fetch PRs and user info independently so a failure in one
+    // doesn't block the other (user-info can fail on cache miss).
+    const prsPromise = invoke<PullRequest[]>("refresh_prs_cmd").catch(async (e) => {
+      console.error("[app] Refresh failed, falling back to cache:", e);
+      return invoke<PullRequest[]>("get_pull_requests_cmd");
+    });
+    const userPromise = invoke<GitHubUser>("get_user_info_cmd").catch((e) => {
+      console.error("[app] Failed to load user info:", e);
+      return null;
+    });
+    const [prs, user] = await Promise.all([prsPromise, userPromise]);
+    prList = prs;
+    if (user) userInfo = user;
+    lastUpdated = new Date();
   }
 
   async function handleRefresh() {
