@@ -289,7 +289,11 @@ fn format_pr_label(pr: &PullRequest, age: &str) -> String {
     let suffix_len = suffix.chars().count();
     let title_budget = MAX_LABEL_WIDTH.saturating_sub(prefix_len + suffix_len);
 
-    let title = truncate(&pr.title, title_budget);
+    let title = if title_budget == 0 {
+        String::new()
+    } else {
+        truncate(&pr.title, title_budget)
+    };
     let title_len = title.chars().count();
 
     // Pad between title and suffix so suffix is right-aligned to MAX_LABEL_WIDTH.
