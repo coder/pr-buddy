@@ -28,15 +28,25 @@
   let loaded = $state(false);
   let currentTheme = $state<ThemePreference>("system");
   let setThemePreference: (t: ThemePreference) => void = () => {};
+  let launchAtLoginEnabled = $state(false);
 
   // Serialize saves so rapid toggles don't race each other
   let saveChain = Promise.resolve();
 
   onMount(() => {
     void loadSettings();
+    void loadAutostartSetting();
     void initTheme();
   });
 
+  async function loadAutostartSetting() {
+    try {
+      const enabled = await invoke<boolean>("is_autostart_enabled_cmd");
+      launchAtLoginEnabled = Boolean(enabled);
+    } catch (e) {
+      console.error("[settings] Failed to load autostart setting:", e);
+    }
+  }
 
   async function initTheme() {
     if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
@@ -92,6 +102,15 @@
     void save();
   }
 
+  function toggleLaunchAtLogin() {
+    const enabled = !launchAtLoginEnabled;
+    launchAtLoginEnabled = enabled;
+    void invoke("set_autostart_cmd", { enabled }).catch((e: unknown) => {
+      console.error("[settings] Failed to set autostart setting:", e);
+      launchAtLoginEnabled = !enabled;
+    });
+  }
+
   function toggleRepo(repo: string) {
     const idx = settings.hidden_repos.indexOf(repo);
     if (idx >= 0) {
@@ -143,6 +162,27 @@
       <div class="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
     </div>
   {:else}
+    <!-- General -->
+    <section>
+      <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide mb-2">General</h2>
+      <button
+        onclick={toggleLaunchAtLogin}
+        class="flex items-center justify-between w-full px-3 py-2 rounded-lg
+               hover:bg-surface-hover transition-colors text-left"
+      >
+        <span class="text-sm text-content">Launch at Login</span>
+        <div
+          class="w-8 h-[18px] rounded-full transition-colors relative
+                 {launchAtLoginEnabled ? 'bg-accent' : 'bg-surface-secondary'}"
+        >
+          <div
+            class="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform
+                   {launchAtLoginEnabled ? 'translate-x-[16px]' : 'translate-x-[2px]'}"
+          ></div>
+        </div>
+      </button>
+    </section>
+
     <!-- Theme -->
     <section>
       <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide mb-2">Theme</h2>
