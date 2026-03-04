@@ -29,6 +29,7 @@
   let currentTheme = $state<ThemePreference>("system");
   let setThemePreference: (t: ThemePreference) => void = () => {};
   let launchAtLoginEnabled = $state(false);
+  let autoStartToggleCount = 0; // generation counter to discard stale reads/rollbacks
 
   // Serialize saves so rapid toggles don't race each other
   let saveChain = Promise.resolve();
@@ -41,9 +42,13 @@
   });
 
   async function loadAutostartSetting() {
+    const gen = autoStartToggleCount;
     try {
       const enabled = await invoke<boolean>("is_autostart_enabled_cmd");
-      launchAtLoginEnabled = Boolean(enabled);
+      // Only apply if user hasn't toggled while we were loading
+      if (autoStartToggleCount === gen) {
+        launchAtLoginEnabled = Boolean(enabled);
+      }
     } catch (e) {
       console.error("[settings] Failed to load autostart setting:", e);
     }
@@ -106,11 +111,15 @@
   function toggleLaunchAtLogin() {
     const enabled = !launchAtLoginEnabled;
     launchAtLoginEnabled = enabled;
+    const gen = ++autoStartToggleCount;
     autoStartChain = autoStartChain
       .then(async () => { await invoke("set_autostart_cmd", { enabled }); })
       .catch((e: unknown) => {
         console.error("[settings] Failed to set autostart setting:", e);
-        launchAtLoginEnabled = !enabled;
+        // Only rollback if no newer toggle has happened since
+        if (autoStartToggleCount === gen) {
+          launchAtLoginEnabled = !enabled;
+        }
       });
   }
 
