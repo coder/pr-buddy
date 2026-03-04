@@ -1,7 +1,8 @@
 use tauri::AppHandle;
-use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, IconMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri_plugin_autostart::ManagerExt;
 
+use crate::avatars::AvatarCache;
 use crate::models::{CheckStatus, PrState, PullRequest};
 
 struct PrSection {
@@ -99,7 +100,11 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
 }
 
 /// Build the full PR menu with grouped sections
-pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu<tauri::Wry>> {
+pub fn build_pr_menu(
+    app: &AppHandle,
+    prs: &[PullRequest],
+    avatar_cache: &AvatarCache,
+) -> tauri::Result<Menu<tauri::Wry>> {
     let sections = group_prs(prs);
     let menu = Menu::new(app)?;
 
@@ -129,17 +134,25 @@ pub fn build_pr_menu(app: &AppHandle, prs: &[PullRequest]) -> tauri::Result<Menu
         // PR items (max 5 per section)
         let show_count = section.prs.len().min(5);
         for pr in &section.prs[..show_count] {
-            let label = format!(
+            let age = time_ago(&pr.created_at);
+            let mut label = format!(
                 "  {} #{} — {}",
                 pr.repository,
                 pr.number,
-                truncate(&pr.title, 38)
+                truncate(&pr.title, 32),
             );
-            let item = MenuItem::with_id(
+            if pr.comment_count > 0 {
+                label.push_str(&format!("  💬{}", pr.comment_count));
+            }
+            label.push_str(&format!("  {}", age));
+
+            let icon = avatar_cache.get_image(&pr.author_login);
+            let item = IconMenuItem::with_id(
                 app,
                 &format!("pr_{}", pr.id),
                 &label,
                 true,
+                icon.as_ref(),
                 None::<&str>,
             )?;
             menu.append(&item)?;
@@ -219,6 +232,23 @@ pub fn build_auth_pending_menu(
     let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
     menu.append(&quit)?;
     Ok(menu)
+}
+
+fn time_ago(iso: &str) -> String {
+    let Ok(dt) = chrono::DateTime::parse_from_rfc3339(iso) else {
+        return String::new();
+    };
+    let secs = (chrono::Utc::now() - dt.to_utc()).num_seconds().max(0);
+    if secs < 60 {
+        return format!("{}s", secs);
+    }
+    if secs < 3600 {
+        return format!("{}m", secs / 60);
+    }
+    if secs < 86400 {
+        return format!("{}h", secs / 3600);
+    }
+    format!("{}d", secs / 86400)
 }
 
 fn truncate(s: &str, max: usize) -> String {
