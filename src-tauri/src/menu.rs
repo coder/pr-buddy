@@ -1,6 +1,5 @@
 use tauri::AppHandle;
-use tauri::menu::{CheckMenuItem, IconMenuItem, Menu, MenuItem, PredefinedMenuItem};
-use tauri_plugin_autostart::ManagerExt;
+use tauri::menu::{IconMenuItem, Menu, MenuItem, PredefinedMenuItem};
 
 use crate::avatars::AvatarCache;
 use crate::models::{CheckStatus, PrState, PullRequest};
@@ -192,24 +191,13 @@ pub fn build_pr_menu(
     menu.append(&see_all)?;
     let refresh = MenuItem::with_id(app, "refresh", "Refresh", true, None::<&str>)?;
     menu.append(&refresh)?;
+    let sep2 = PredefinedMenuItem::separator(app)?;
+    menu.append(&sep2)?;
     let check_updates =
         MenuItem::with_id(app, "check_updates", "Check for Updates", true, None::<&str>)?;
     menu.append(&check_updates)?;
-    let autostart_enabled = app.autolaunch().is_enabled().unwrap_or(false);
-    let autostart_toggle = CheckMenuItem::with_id(
-        app,
-        "autostart_toggle",
-        "Launch at login",
-        true,
-        autostart_enabled,
-        None::<&str>,
-    )?;
-    menu.append(&autostart_toggle)?;
-    let settings =
-        MenuItem::with_id(app, "settings", "Settings...", true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
     menu.append(&settings)?;
-    let sep2 = PredefinedMenuItem::separator(app)?;
-    menu.append(&sep2)?;
     let logout = MenuItem::with_id(app, "logout", "Logout", true, None::<&str>)?;
     menu.append(&logout)?;
     let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
