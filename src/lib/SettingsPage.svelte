@@ -29,6 +29,7 @@
   let currentTheme = $state<ThemePreference>("system");
   let setThemePreference: (t: ThemePreference) => void = () => {};
   let launchAtLoginEnabled = $state(false);
+  let autoStartLoaded = $state(false);
   let autoStartToggleCount = 0; // generation counter to discard stale reads/rollbacks
 
   // Serialize saves so rapid toggles don't race each other
@@ -51,6 +52,8 @@
       }
     } catch (e) {
       console.error("[settings] Failed to load autostart setting:", e);
+    } finally {
+      autoStartLoaded = true;
     }
   }
 
@@ -179,8 +182,10 @@
       <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide mb-2">General</h2>
       <button
         onclick={toggleLaunchAtLogin}
+        disabled={!autoStartLoaded}
         class="flex items-center justify-between w-full px-3 py-2 rounded-lg
-               hover:bg-surface-hover transition-colors text-left"
+               hover:bg-surface-hover transition-colors text-left
+               {autoStartLoaded ? '' : 'opacity-50 cursor-not-allowed'}"
       >
         <span class="text-sm text-content">Launch at Login</span>
         <div
