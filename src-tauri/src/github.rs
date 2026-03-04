@@ -188,6 +188,17 @@ pub async fn fetch_pull_requests(token: &str) -> Result<Vec<PullRequest>, AuthEr
         message: format!("Failed to parse GraphQL response: {}", e),
     })?;
 
+    // Bail early if the response has no data (e.g. GraphQL error payload with data: null)
+    let has_authored = body.pointer("/data/authored/nodes").is_some();
+    let has_review = body.pointer("/data/reviewRequested/nodes").is_some();
+    let has_legacy = body.pointer("/data/search/nodes").is_some();
+
+    if !has_authored && !has_review && !has_legacy {
+        return Err(AuthError {
+            message: "Invalid GraphQL response: no PR data returned".to_string(),
+        });
+    }
+
     let mut prs = Vec::new();
     let mut seen_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
 
@@ -216,7 +227,7 @@ pub async fn fetch_pull_requests(token: &str) -> Result<Vec<PullRequest>, AuthEr
         }
     }
 
-    // If both are empty, check for the old single-search structure (shouldn't happen but be safe)
+    // Fallback: check for the old single-search structure
     if prs.is_empty() {
         if let Some(nodes) = body.pointer("/data/search/nodes").and_then(|n| n.as_array()) {
             prs = nodes.iter().filter_map(parse_pr_node).collect();
