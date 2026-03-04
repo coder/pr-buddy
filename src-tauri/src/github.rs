@@ -237,8 +237,13 @@ pub async fn get_user_info_cmd(
     };
     if let Some(token) = token {
         let user_info = fetch_user_info(&token).await?;
-        let mut cached = state.user.lock().unwrap();
-        *cached = Some(user_info.clone());
+        // Only cache if the token hasn't changed during the fetch
+        // (guards against logout/account-switch racing with the request)
+        let current_token = state.token.lock().unwrap().clone();
+        if current_token.as_deref() == Some(token.as_str()) {
+            let mut cached = state.user.lock().unwrap();
+            *cached = Some(user_info.clone());
+        }
         Ok(Some(user_info))
     } else {
         Ok(None)
