@@ -25,6 +25,7 @@ export default defineConfig({
       "@lucide/svelte/icons/party-popper",
       "@lucide/svelte/icons/refresh-cw",
       "@lucide/svelte/icons/log-out",
+      "@lucide/svelte/icons/message-square",
       "@lucide/svelte/icons/external-link",
       "@lucide/svelte/icons/settings",
       "@lucide/svelte/icons/minus",
