@@ -30,6 +30,13 @@ fn build_pr_query() -> String {
         reviewDecision
         additions
         deletions
+        author {{
+          login
+          avatarUrl
+        }}
+        comments {{
+          totalCount
+        }}
         headRefName
         baseRefName
         repository {{
@@ -135,6 +142,20 @@ fn parse_pr_node(node: &Value) -> Option<PullRequest> {
             .map(|s| s.to_string()),
         additions: node.get("additions").and_then(|v| v.as_u64()).unwrap_or(0),
         deletions: node.get("deletions").and_then(|v| v.as_u64()).unwrap_or(0),
+        comment_count: node
+            .pointer("/comments/totalCount")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0),
+        author_login: node
+            .pointer("/author/login")
+            .and_then(|v| v.as_str())
+            .unwrap_or("ghost")
+            .to_string(),
+        author_avatar_url: node
+            .pointer("/author/avatarUrl")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
     })
 }
 

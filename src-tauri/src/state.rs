@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use chrono::{DateTime, Utc};
 use tauri::tray::TrayIcon;
 
+use crate::avatars::AvatarCache;
 use crate::models::{GitHubUser, PullRequest};
 use crate::settings::UserSettings;
 
@@ -15,6 +16,7 @@ pub struct AppState {
     pub last_poll: Mutex<Option<DateTime<Utc>>>,
     pub tray: Mutex<Option<TrayIcon>>,
     pub settings: Mutex<UserSettings>,
+    pub avatar_cache: AvatarCache,
 }
 
 impl AppState {
@@ -27,6 +29,7 @@ impl AppState {
             last_poll: Mutex::new(None),
             tray: Mutex::new(None),
             settings: Mutex::new(UserSettings::default()),
+            avatar_cache: AvatarCache::new(),
         }
     }
 }

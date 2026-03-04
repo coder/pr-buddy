@@ -1,3 +1,4 @@
+mod avatars;
 mod auth;
 mod github;
 mod menu;
@@ -66,7 +67,7 @@ pub fn run() {
             let is_authed = state.token.lock().unwrap().is_some();
             let initial_menu = if is_authed {
                 let prs = state.prs.lock().unwrap();
-                menu::build_pr_menu(app.handle(), &prs)?
+                menu::build_pr_menu(app.handle(), &prs, &state.avatar_cache)?
             } else {
                 menu::build_auth_menu(app.handle())?
             };
@@ -176,11 +177,22 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                 };
                 if let Some(token) = token {
                     if let Ok(prs) = github::fetch_pull_requests(&token).await {
+                        {
+                            let state = app.state::<state::AppState>();
+                            *state.prs.lock().unwrap() = prs.clone();
+                        }
+
+                        app.state::<state::AppState>()
+                            .avatar_cache
+                            .fetch_missing(&prs)
+                            .await;
+
                         let state = app.state::<state::AppState>();
-                        *state.prs.lock().unwrap() = prs.clone();
                         let tray_guard = state.tray.lock().unwrap();
                         if let Some(tray) = tray_guard.as_ref() {
-                            if let Ok(new_menu) = menu::build_pr_menu(&app, &prs) {
+                            if let Ok(new_menu) =
+                                menu::build_pr_menu(&app, &prs, &state.avatar_cache)
+                            {
                                 let _ = tray.set_menu(Some(new_menu));
                             }
                         }
@@ -208,7 +220,7 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
             let state = app.state::<state::AppState>();
             let tray_guard = state.tray.lock().unwrap();
             if let Some(tray) = tray_guard.as_ref() {
-                if let Ok(new_menu) = menu::build_pr_menu(app, &prs) {
+                if let Ok(new_menu) = menu::build_pr_menu(app, &prs, &state.avatar_cache) {
                     let _ = tray.set_menu(Some(new_menu));
                 }
             }
@@ -275,9 +287,12 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
                                             .await
                                             .unwrap_or_default();
                                         *state.prs.lock().unwrap() = prs.clone();
+                                        state.avatar_cache.fetch_missing(&prs).await;
                                         let tray_guard = state.tray.lock().unwrap();
                                         if let Some(tray) = tray_guard.as_ref() {
-                                            if let Ok(m) = menu::build_pr_menu(&app, &prs) {
+                                            if let Ok(m) =
+                                                menu::build_pr_menu(&app, &prs, &state.avatar_cache)
+                                            {
                                                 let _ = tray.set_menu(Some(m));
                                             }
                                         }

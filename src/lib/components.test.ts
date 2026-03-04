@@ -31,6 +31,9 @@ const mockPr: PullRequest = {
   review_decision: "APPROVED",
   additions: 10,
   deletions: 3,
+  comment_count: 5,
+  author_login: "testuser",
+  author_avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
 };
 
 const mockUser: GitHubUser = {
@@ -83,9 +86,14 @@ describe("StatusBadge", () => {
 describe("PRCard", () => {
   it("renders PR title and repo", async () => {
     const { default: PRCard } = await import("./PRCard.svelte");
-    render(PRCard, { props: { pr: mockPr } });
+    const { container } = render(PRCard, { props: { pr: mockPr } });
     expect(screen.getByText("feat: add widget")).toBeTruthy();
     expect(screen.getByText("test/repo")).toBeTruthy();
+
+    // Avatar renders
+    const img = container.querySelector("img");
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute("src")).toContain("avatars.githubusercontent.com");
   });
 });
 

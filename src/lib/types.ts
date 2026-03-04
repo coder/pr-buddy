@@ -32,6 +32,9 @@ export interface PullRequest {
   review_decision: string | null;
   additions: number;
   deletions: number;
+  comment_count: number;
+  author_login: string;
+  author_avatar_url: string;
 }
 
 export interface GitHubUser {

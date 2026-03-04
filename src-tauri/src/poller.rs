@@ -76,12 +76,22 @@ pub fn start_polling(app_handle: AppHandle) {
                             *last_poll = Some(chrono::Utc::now());
                         }
 
+                        // Fetch avatars for any new authors
+                        app_handle
+                            .state::<AppState>()
+                            .avatar_cache
+                            .fetch_missing(&new_prs)
+                            .await;
                         // Rebuild tray menu with updated PRs
                         {
                             let state = app_handle.state::<AppState>();
                             let tray_guard = state.tray.lock().unwrap();
                             if let Some(tray) = tray_guard.as_ref() {
-                                if let Ok(new_menu) = crate::menu::build_pr_menu(&app_handle, &new_prs) {
+                                if let Ok(new_menu) = crate::menu::build_pr_menu(
+                                    &app_handle,
+                                    &new_prs,
+                                    &state.avatar_cache,
+                                ) {
                                     let _ = tray.set_menu(Some(new_menu));
                                 }
                             }
