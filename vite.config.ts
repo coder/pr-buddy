@@ -34,6 +34,7 @@ export default defineConfig({
       "@lucide/svelte/icons/monitor",
       "@lucide/svelte/icons/arrow-left",
       "@lucide/svelte/icons/git-branch",
+      "@lucide/svelte/icons/user-check",
     ],
   },
   server: {
