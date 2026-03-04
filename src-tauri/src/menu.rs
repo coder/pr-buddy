@@ -270,46 +270,28 @@ pub fn build_auth_pending_menu(
     Ok(menu)
 }
 
-/// Maximum character width for PR menu item labels.
-/// Title is dynamically truncated so the suffix (comments + age) right-aligns.
-const MAX_LABEL_WIDTH: usize = 55;
+/// Maximum characters for the left portion of a PR label (prefix + title).
+/// The title is dynamically truncated to fit within this budget.
+const MAX_LEFT_WIDTH: usize = 42;
 
-/// Format a PR label with fixed total width and right-aligned suffix.
+/// Format a PR label with a tab stop so macOS right-aligns the suffix.
+///
+/// Native macOS menus treat `\t` as a right-aligned tab stop, so the suffix
+/// (comment count + age) lines up regardless of proportional-font glyph widths.
 fn format_pr_label(pr: &PullRequest, age: &str) -> String {
-    // Build the right-aligned suffix first so we know how much space the title gets.
     let suffix = if pr.comment_count > 0 {
-        format!("  💬{}  {}", pr.comment_count, age)
+        format!("💬{}  {}", pr.comment_count, age)
     } else {
-        format!("  {}", age)
+        age.to_string()
     };
-    let suffix_len = suffix.chars().count();
 
-    // Fixed parts of the prefix (excluding repo name): "  " + " #" + number + " — "
-    let number_len = pr.number.to_string().chars().count();
-    let fixed_overhead = 7 + number_len;
-
-    // Space available for repo name + title together.
-    let content_budget = MAX_LABEL_WIDTH.saturating_sub(fixed_overhead + suffix_len);
-
-    // Give repo its full name, but cap it to leave at least 6 chars for the title.
-    let repo_name_len = pr.repository.chars().count();
-    let repo_budget = repo_name_len.min(content_budget.saturating_sub(6));
-    let repo = truncate(&pr.repository, repo_budget);
-    let repo_len = repo.chars().count();
-
-    let title_budget = content_budget.saturating_sub(repo_len);
-    let title = truncate(&pr.title, title_budget);
-    let title_len = title.chars().count();
-
-    let prefix = format!("  {} #{} — ", repo, pr.number);
+    let prefix = format!("{} #{} — ", pr.repository, pr.number);
     let prefix_len = prefix.chars().count();
+    let title_budget = MAX_LEFT_WIDTH.saturating_sub(prefix_len);
 
-    // Pad between title and suffix so suffix is right-aligned to MAX_LABEL_WIDTH.
-    let used = prefix_len + title_len + suffix_len;
-    let pad = MAX_LABEL_WIDTH.saturating_sub(used);
-    let padding = " ".repeat(pad);
+    let title = truncate(&pr.title, title_budget);
 
-    format!("{}{}{}{}", prefix, title, padding, suffix)
+    format!("  {}{}\t{}", prefix, title, suffix)
 }
 
 fn time_ago(iso: &str) -> String {
