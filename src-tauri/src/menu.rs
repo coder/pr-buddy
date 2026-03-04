@@ -152,7 +152,7 @@ pub fn build_pr_menu(
                 &format!("pr_{}", pr.id),
                 &label,
                 true,
-                icon.as_ref(),
+                icon,
                 None::<&str>,
             )?;
             menu.append(&item)?;
