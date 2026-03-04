@@ -30,13 +30,13 @@ fn build_pr_query() -> String {
         reviewDecision
         additions
         deletions
-        author {
+        author {{
           login
           avatarUrl
-        }
-        comments {
+        }}
+        comments {{
           totalCount
-        }
+        }}
         headRefName
         baseRefName
         repository {{
