@@ -282,15 +282,27 @@ fn format_pr_label(pr: &PullRequest, age: &str) -> String {
     } else {
         format!("  {}", age)
     };
-
-    let prefix = format!("  {} #{} — ", pr.repository, pr.number);
-
-    let prefix_len = prefix.chars().count();
     let suffix_len = suffix.chars().count();
-    let title_budget = MAX_LABEL_WIDTH.saturating_sub(prefix_len + suffix_len);
 
+    // Fixed parts of the prefix (excluding repo name): "  " + " #" + number + " — "
+    let number_len = pr.number.to_string().chars().count();
+    let fixed_overhead = 7 + number_len;
+
+    // Space available for repo name + title together.
+    let content_budget = MAX_LABEL_WIDTH.saturating_sub(fixed_overhead + suffix_len);
+
+    // Give repo its full name, but cap it to leave at least 6 chars for the title.
+    let repo_name_len = pr.repository.chars().count();
+    let repo_budget = repo_name_len.min(content_budget.saturating_sub(6));
+    let repo = truncate(&pr.repository, repo_budget);
+    let repo_len = repo.chars().count();
+
+    let title_budget = content_budget.saturating_sub(repo_len);
     let title = truncate(&pr.title, title_budget);
     let title_len = title.chars().count();
+
+    let prefix = format!("  {} #{} — ", repo, pr.number);
+    let prefix_len = prefix.chars().count();
 
     // Pad between title and suffix so suffix is right-aligned to MAX_LABEL_WIDTH.
     let used = prefix_len + title_len + suffix_len;
