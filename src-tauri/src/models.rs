@@ -53,6 +53,7 @@ pub struct PullRequest {
     pub comment_count: u64,
     pub author_login: String,
     pub author_avatar_url: String,
+    pub is_review_requested: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

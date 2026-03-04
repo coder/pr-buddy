@@ -9,17 +9,7 @@ use crate::models::{
 use crate::state::AppState;
 
 const GRAPHQL_URL: &str = "https://api.github.com/graphql";
-
-fn build_pr_query() -> String {
-    let since = chrono::Utc::now() - chrono::Duration::days(14);
-    let since_str = since.format("%Y-%m-%d").to_string();
-
-    format!(
-        r#"{{
-  search(query: "is:pr author:@me updated:>={since}", type: ISSUE, first: 50) {{
-    nodes {{
-      ... on PullRequest {{
-        id
+const PR_FRAGMENT: &str = r#"id
         number
         title
         url
@@ -30,45 +20,64 @@ fn build_pr_query() -> String {
         reviewDecision
         additions
         deletions
-        author {{
+        author {
           login
           avatarUrl
-        }}
-        comments {{
+        }
+        comments {
           totalCount
-        }}
+        }
         headRefName
         baseRefName
-        repository {{
+        repository {
           name
-          owner {{
+          owner {
             login
-          }}
-        }}
-        labels(first: 10) {{
-          nodes {{
+          }
+        }
+        labels(first: 10) {
+          nodes {
             name
             color
-          }}
-        }}
-        commits(last: 1) {{
-          nodes {{
-            commit {{
-              statusCheckRollup {{
+          }
+        }
+        commits(last: 1) {
+          nodes {
+            commit {
+              statusCheckRollup {
                 state
-              }}
-            }}
-          }}
-        }}
-        mergeQueueEntry {{
+              }
+            }
+          }
+        }
+        mergeQueueEntry {
           state
           position
-        }}
+        }"#;
+
+fn build_pr_query() -> String {
+    let since = chrono::Utc::now() - chrono::Duration::days(14);
+    let since_str = since.format("%Y-%m-%d").to_string();
+
+    format!(
+        r#"{{
+  authored: search(query: "is:pr author:@me updated:>={since}", type: ISSUE, first: 50) {{
+    nodes {{
+      ... on PullRequest {{
+        {fragment}
+      }}
+    }}
+  }}
+  reviewRequested: search(query: "is:pr review-requested:@me state:open updated:>={since}", type: ISSUE, first: 30) {{
+    nodes {{
+      ... on PullRequest {{
+        {fragment}
       }}
     }}
   }}
 }}"#,
-        since = since_str
+        since = since_str,
+        fragment = PR_FRAGMENT
     )
 }
 
@@ -156,6 +165,7 @@ fn parse_pr_node(node: &Value) -> Option<PullRequest> {
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string(),
+        is_review_requested: false,
     })
 }
 
@@ -178,14 +188,53 @@ pub async fn fetch_pull_requests(token: &str) -> Result<Vec<PullRequest>, AuthEr
         message: format!("Failed to parse GraphQL response: {}", e),
     })?;
 
-    let nodes = body
-        .pointer("/data/search/nodes")
-        .and_then(|n| n.as_array())
-        .ok_or_else(|| AuthError {
-            message: "Invalid GraphQL response structure".to_string(),
-        })?;
+    // Bail early if the response has no data (e.g. GraphQL error payload with data: null)
+    let has_authored = body.pointer("/data/authored/nodes").is_some();
+    let has_review = body.pointer("/data/reviewRequested/nodes").is_some();
+    let has_legacy = body.pointer("/data/search/nodes").is_some();
 
-    Ok(nodes.iter().filter_map(parse_pr_node).collect())
+    if !has_authored && !has_review && !has_legacy {
+        return Err(AuthError {
+            message: "Invalid GraphQL response: no PR data returned".to_string(),
+        });
+    }
+
+    let mut prs = Vec::new();
+    let mut seen_ids: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    // 1. Parse authored PRs (is_review_requested = false)
+    if let Some(authored_nodes) = body.pointer("/data/authored/nodes").and_then(|n| n.as_array()) {
+        for node in authored_nodes {
+            if let Some(pr) = parse_pr_node(node) {
+                seen_ids.insert(pr.id.clone());
+                prs.push(pr);
+            }
+        }
+    }
+
+    // 2. Parse review-requested PRs, skip duplicates (authored wins)
+    if let Some(review_nodes) = body
+        .pointer("/data/reviewRequested/nodes")
+        .and_then(|n| n.as_array())
+    {
+        for node in review_nodes {
+            if let Some(mut pr) = parse_pr_node(node) {
+                if seen_ids.insert(pr.id.clone()) {
+                    pr.is_review_requested = true;
+                    prs.push(pr);
+                }
+            }
+        }
+    }
+
+    // Fallback: check for the old single-search structure
+    if prs.is_empty() {
+        if let Some(nodes) = body.pointer("/data/search/nodes").and_then(|n| n.as_array()) {
+            prs = nodes.iter().filter_map(parse_pr_node).collect();
+        }
+    }
+
+    Ok(prs)
 }
 
 pub async fn fetch_user_info(token: &str) -> Result<GitHubUser, AuthError> {
@@ -289,3 +338,4 @@ pub async fn refresh_prs_cmd(state: State<'_, AppState>) -> Result<Vec<PullReque
 
     Ok(prs)
 }
+

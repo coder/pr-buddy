@@ -11,6 +11,11 @@ pub fn diff_pr_states(
     let mut events = Vec::new();
 
     for new_pr in new {
+        // Don't fire notifications for PRs we're just reviewing
+        if new_pr.is_review_requested {
+            continue;
+        }
+
         if let Some(old_pr) = old.get(&new_pr.id) {
             // Check for checks failure
             if old_pr.check_status != CheckStatus::Failure

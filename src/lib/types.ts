@@ -35,6 +35,7 @@ export interface PullRequest {
   comment_count: number;
   author_login: string;
   author_avatar_url: string;
+  is_review_requested: boolean;
 }
 
 export interface GitHubUser {

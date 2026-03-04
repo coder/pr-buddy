@@ -10,20 +10,39 @@ struct PrSection {
     prs: Vec<PullRequest>,
 }
 
-/// Port of src/lib/stores.ts groupPrs() — same 7 sections, same filter logic
+/// Port of src/lib/stores.ts groupPrs() with tray-specific section ordering.
 fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
-    let drafts: Vec<_> = all_prs
+    let review_requested: Vec<_> = all_prs
+        .iter()
+        .filter(|pr| pr.is_review_requested)
+        .cloned()
+        .collect();
+    let my_prs: Vec<_> = all_prs
+        .iter()
+        .filter(|pr| !pr.is_review_requested)
+        .cloned()
+        .collect();
+
+    let drafts: Vec<_> = my_prs
         .iter()
         .filter(|pr| pr.state == PrState::Open && pr.is_draft)
         .cloned()
         .collect();
-    let non_draft_open: Vec<_> = all_prs
+    let non_draft_open: Vec<_> = my_prs
         .iter()
         .filter(|pr| pr.state == PrState::Open && !pr.is_draft)
         .cloned()
         .collect();
 
     vec![
+        PrSection {
+            title: "Needs Your Review".into(),
+            prs: review_requested
+                .iter()
+                .filter(|pr| pr.state == PrState::Open && pr.check_status == CheckStatus::Success)
+                .cloned()
+                .collect(),
+        },
         PrSection {
             title: "In Merge Queue".into(),
             prs: non_draft_open
@@ -90,7 +109,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
         },
         PrSection {
             title: "Recently Merged".into(),
-            prs: all_prs
+            prs: my_prs
                 .iter()
                 .filter(|pr| pr.state == PrState::Merged)
                 .cloned()
