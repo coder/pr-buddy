@@ -129,6 +129,7 @@ pub fn run() {
                                     eprintln!("[setup] Saved token is invalid, clearing session");
                                     *current = None;
                                     drop(current);
+                                    *state.user.lock().unwrap() = None;
                                     auth::delete_token_from_disk(&app_handle);
                                     {
                                         let tray_guard = state.tray.lock().unwrap();
@@ -358,6 +359,7 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
             tauri::async_runtime::spawn(async move {
                 let state = app.state::<state::AppState>();
                 *state.token.lock().unwrap() = None;
+                *state.user.lock().unwrap() = None;
                 *state.prs.lock().unwrap() = vec![];
                 state.previous_prs.lock().unwrap().clear();
                 auth::delete_token_from_disk(&app);
