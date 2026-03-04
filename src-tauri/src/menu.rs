@@ -159,16 +159,7 @@ pub fn build_pr_menu(
             let show_count = section.prs.len().min(5);
             for pr in &section.prs[..show_count] {
                 let age = time_ago(&pr.created_at);
-                let mut label = format!(
-                    "  {} #{} — {}",
-                    pr.repository,
-                    pr.number,
-                    truncate(&pr.title, 32),
-                );
-                if pr.comment_count > 0 {
-                    label.push_str(&format!("  💬{}", pr.comment_count));
-                }
-                label.push_str(&format!("  {}", age));
+                let label = format_pr_label(pr, &age);
 
                 let icon = avatar_cache.get_image(&pr.author_login);
                 let item = IconMenuItem::with_id(
@@ -199,16 +190,7 @@ pub fn build_pr_menu(
             let show_count = section.prs.len().min(5);
             for pr in &section.prs[..show_count] {
                 let age = time_ago(&pr.created_at);
-                let mut label = format!(
-                    "  {} #{} — {}",
-                    pr.repository,
-                    pr.number,
-                    truncate(&pr.title, 32),
-                );
-                if pr.comment_count > 0 {
-                    label.push_str(&format!("  💬{}", pr.comment_count));
-                }
-                label.push_str(&format!("  {}", age));
+                let label = format_pr_label(pr, &age);
 
                 let icon = avatar_cache.get_image(&pr.author_login);
                 let item = IconMenuItem::with_id(
@@ -286,6 +268,35 @@ pub fn build_auth_pending_menu(
     let quit = MenuItem::with_id(app, "quit", "Quit PR Buddy", true, None::<&str>)?;
     menu.append(&quit)?;
     Ok(menu)
+}
+
+/// Maximum character width for PR menu item labels.
+/// Title is dynamically truncated so the suffix (comments + age) right-aligns.
+const MAX_LABEL_WIDTH: usize = 55;
+
+/// Format a PR label with fixed total width and right-aligned suffix.
+fn format_pr_label(pr: &PullRequest, age: &str) -> String {
+    // Build the right-aligned suffix first so we know how much space the title gets.
+    let suffix = if pr.comment_count > 0 {
+        format!("  💬{}  {}", pr.comment_count, age)
+    } else {
+        format!("  {}", age)
+    };
+
+    let prefix = format!("  {} #{} — ", pr.repository, pr.number);
+
+    let prefix_len = prefix.chars().count();
+    let suffix_len = suffix.chars().count();
+    let title_budget = MAX_LABEL_WIDTH.saturating_sub(prefix_len + suffix_len);
+
+    let title = truncate(&pr.title, title_budget);
+    let title_len = title.chars().count();
+
+    // Pad between title and suffix so suffix is right-aligned to MAX_LABEL_WIDTH.
+    let pad = MAX_LABEL_WIDTH.saturating_sub(prefix_len + title_len + suffix_len);
+    let padding = " ".repeat(pad);
+
+    format!("{}{}{}{}", prefix, title, padding, suffix)
 }
 
 fn time_ago(iso: &str) -> String {
