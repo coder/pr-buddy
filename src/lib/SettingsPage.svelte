@@ -32,6 +32,7 @@
 
   // Serialize saves so rapid toggles don't race each other
   let saveChain = Promise.resolve();
+  let autoStartChain = Promise.resolve();
 
   onMount(() => {
     void loadSettings();
@@ -105,10 +106,12 @@
   function toggleLaunchAtLogin() {
     const enabled = !launchAtLoginEnabled;
     launchAtLoginEnabled = enabled;
-    void invoke("set_autostart_cmd", { enabled }).catch((e: unknown) => {
-      console.error("[settings] Failed to set autostart setting:", e);
-      launchAtLoginEnabled = !enabled;
-    });
+    autoStartChain = autoStartChain
+      .then(async () => { await invoke("set_autostart_cmd", { enabled }); })
+      .catch((e: unknown) => {
+        console.error("[settings] Failed to set autostart setting:", e);
+        launchAtLoginEnabled = !enabled;
+      });
   }
 
   function toggleRepo(repo: string) {
