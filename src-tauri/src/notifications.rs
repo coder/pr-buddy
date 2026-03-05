@@ -87,36 +87,13 @@ pub fn send_notification(app: &AppHandle, event: &PrEvent) {
     });
 }
 
-/// macOS: use mac-notification-sys directly so we get the blocking NotificationResponse
-/// that tells us whether the user clicked the notification.
+/// macOS: fire-and-forget via tauri-plugin-notification (replaces mac-notification-sys
+/// which caused 100% CPU from its busy-wait NSRunLoop polling).
 #[cfg(target_os = "macos")]
-fn send_and_handle_click(app: &AppHandle, title: &str, body: &str, url: &str) {
-    let bundle_id = if tauri::is_dev() {
-        "com.apple.Terminal"
-    } else {
-        &app.config().identifier
-    };
-    let _ = mac_notification_sys::set_application(bundle_id);
-
-    let response = mac_notification_sys::Notification::new()
-        .title(title)
-        .message(body)
-        .main_button(mac_notification_sys::MainButton::SingleAction("Open PR"))
-        .wait_for_click(true)
-        .send();
-
-    match response {
-        Ok(
-            mac_notification_sys::NotificationResponse::Click
-            | mac_notification_sys::NotificationResponse::ActionButton(_),
-        ) => {
-            use tauri_plugin_opener::OpenerExt;
-            let _ = app.opener().open_url(url, None::<&str>);
-        }
-        Ok(_) => {} // dismissed / timed out — nothing to do
-        Err(e) => {
-            eprintln!("[notifications] Failed to show notification: {}", e);
-        }
+fn send_and_handle_click(app: &AppHandle, title: &str, body: &str, _url: &str) {
+    use tauri_plugin_notification::NotificationExt;
+    if let Err(e) = app.notification().builder().title(title).body(body).show() {
+        eprintln!("[notifications] Failed to show notification: {}", e);
     }
 }
 
