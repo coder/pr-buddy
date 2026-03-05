@@ -89,11 +89,11 @@ fi
 
 # Check for thumbs-up reaction from Codex bot (must be after latest push)
 last_push=$(echo "$data" | jq -r \
-  '.data.repository.pullRequest.commits.nodes[-1].commit.pushedDate // empty')
+  '.data.repository.pullRequest.commits.nodes[-1].commit.pushedDate // ""')
 
 has_thumbsup=$(echo "$data" | jq -r --arg bot "$BOT_LOGIN" --arg since "${last_push:-}" \
   '[.data.repository.pullRequest.reactions.nodes[]?
-    | select(.user.login == $bot)
+    | select(.user.login | startswith($bot))
     | select($since == "" or .createdAt > $since)
   ] | length')
 
