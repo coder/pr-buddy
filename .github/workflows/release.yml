@@ -110,6 +110,9 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Enable bundler debug logging — sign command stdout/stderr is
+          # swallowed on failure; RUST_LOG surfaces the command invocation.
+          RUST_LOG: tauri_bundler=debug
           # macOS signing & notarization (optional — skipped if not set)
           APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -132,3 +135,27 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }} ${{ env.SIGNING_ARGS }}
+
+      # Dump sign script log on failure — Tauri bundler swallows subprocess
+      # stdout/stderr when the sign command exits non-zero, making failures
+      # invisible. The script writes a transcript to $RUNNER_TEMP/sign-windows.log.
+      - name: Dump signing log on failure
+        if: failure() && matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $logFile = Join-Path $env:RUNNER_TEMP "sign-windows.log"
+          if (Test-Path $logFile) {
+            Write-Host "=== sign-windows.log ==="
+            Get-Content $logFile
+            Write-Host "=== end sign-windows.log ==="
+          } else {
+            Write-Host "No sign-windows.log found at $logFile"
+            Write-Host "Sign script may not have been invoked, or RUNNER_TEMP differs."
+            Write-Host "Checking TEMP fallback..."
+            $fallback = Join-Path $env:TEMP "sign-windows.log"
+            if (Test-Path $fallback) {
+              Get-Content $fallback
+            } else {
+              Write-Host "No log file found at $fallback either."
+            }
+          }
