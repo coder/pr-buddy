@@ -114,24 +114,36 @@ jobs:
         run: |
           set -uo pipefail
 
-          # Check if Codex has been requested as a reviewer or has left comments.
-          # Exit codes: 0=approved, 1=comments to address, 10=no response yet.
-          if ./scripts/check_codex_comments.sh "$PR_NUMBER"; then
-            rc=0
-          else
-            rc=$?
-          fi
+          # Grace period: retry up to ~75s when Codex hasn't responded yet.
+          max_attempts=6
+          interval=15
+          attempt=0
 
-          case "$rc" in
-            0)
-              echo "✅ Codex review approved"
-              ;;
-            10)
-              echo "⏳ Codex review not yet received — request one with: @codex review"
-              exit 1
-              ;;
-            *)
-              echo "❌ Codex review has comments to address"
-              exit 1
-              ;;
-          esac
+          while true; do
+            attempt=$((attempt + 1))
+
+            if ./scripts/check_codex_comments.sh "$PR_NUMBER"; then
+              rc=0
+            else
+              rc=$?
+            fi
+
+            case "$rc" in
+              0)
+                echo "✅ Codex review approved"
+                exit 0
+                ;;
+              10)
+                if [ "$attempt" -ge "$max_attempts" ]; then
+                  echo "⏳ Codex review not yet received after ${attempt} attempts — request one with: @codex review"
+                  exit 1
+                fi
+                echo "⏳ No Codex response yet (attempt ${attempt}/${max_attempts}), retrying in ${interval}s..."
+                sleep "$interval"
+                ;;
+              *)
+                echo "❌ Codex review has comments to address"
+                exit 1
+                ;;
+            esac
+          done
