@@ -3,7 +3,7 @@ description: "Configure EV code signing for Windows builds using GCP KMS"
 
 inputs:
   ev_signing_cert:
-    description: "EV signing certificate (PEM format)"
+    description: "Base64-encoded EV signing certificate chain (PEM)"
     required: false
   gcp_workload_id_provider:
     description: "GCP Workload Identity Provider"
@@ -43,9 +43,12 @@ runs:
           exit 0
         }
 
-        # Save EV certificate to temp file
+        # Decode base64-encoded certificate chain and save to temp file
+        $certContent = [System.Text.Encoding]::UTF8.GetString(
+            [System.Convert]::FromBase64String($env:EV_SIGNING_CERT)
+        )
         $certPath = Join-Path $env:TEMP "ev_cert.pem"
-        Set-Content -Path $certPath -Value $env:EV_SIGNING_CERT
+        Set-Content -Path $certPath -Value $certContent -NoNewline
         Add-Content -Path $env:GITHUB_ENV -Value "EV_CERTIFICATE_PATH=$certPath"
 
         # Download jsign
