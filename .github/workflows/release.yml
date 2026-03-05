@@ -86,21 +86,26 @@ jobs:
 
       - name: Configure Tauri Windows signCommand
         if: matrix.platform == 'windows-latest' && env.JSIGN_PATH != ''
-        shell: bash
+        shell: pwsh
         run: |
-          cat > signing.conf.json << 'EOF'
-          {
-            "bundle": {
-              "windows": {
-                "signCommand": {
-                  "cmd": "pwsh",
-                  "args": ["-File", "scripts/sign-windows.ps1", "%1"]
-                }
+          # Resolve absolute paths — Tauri's bundler uses std::process::Command
+          # (no shell) so bare names like 'pwsh' fail PATH lookup on Windows.
+          $pwshPath = (Get-Command pwsh).Source -replace '\\', '/'
+          $scriptPath = (Resolve-Path "scripts/sign-windows.ps1").Path -replace '\\', '/'
+          $config = @{
+              bundle = @{
+                  windows = @{
+                      signCommand = @{
+                          cmd = $pwshPath
+                          args = @("-File", $scriptPath, "%1")
+                      }
+                  }
               }
-            }
-          }
-          EOF
-          echo "SIGNING_ARGS=--config signing.conf.json" >> "$GITHUB_ENV"
+          } | ConvertTo-Json -Depth 10
+          $config | Set-Content signing.conf.json
+          Write-Host "signing.conf.json:"
+          Get-Content signing.conf.json
+          Add-Content -Path $env:GITHUB_ENV -Value "SIGNING_ARGS=--config signing.conf.json"
 
       - uses: tauri-apps/tauri-action@v0
         env:
