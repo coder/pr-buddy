@@ -43,10 +43,20 @@ runs:
           exit 0
         }
 
-        # Save EV certificate to temp file
+        # Save EV certificate to temp file.
+        # Use WriteAllText to avoid BOM — Set-Content can prepend a UTF-8 BOM
+        # or use UTF-16 encoding, which corrupts the PEM header and causes
+        # Java's X509Factory to fail with "No certificate data found".
         $certPath = Join-Path $env:TEMP "ev_cert.pem"
-        Set-Content -Path $certPath -Value $env:EV_SIGNING_CERT
+        [System.IO.File]::WriteAllText($certPath, $env:EV_SIGNING_CERT, [System.Text.UTF8Encoding]::new($false))
         Add-Content -Path $env:GITHUB_ENV -Value "EV_CERTIFICATE_PATH=$certPath"
+
+        # Quick sanity check — PEM must start with the certificate header
+        $head = Get-Content $certPath -First 1
+        if ($head -notmatch '^-----BEGIN') {
+          Write-Error "Certificate file does not look like valid PEM (first line: $head)"
+          exit 1
+        }
 
         # Download jsign
         $jsignPath = Join-Path $env:TEMP "jsign-6.0.jar"
