@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, onDestroy } from "svelte";
   import type { UpdateCheckResult } from "./types";
   import CheckCircle from "@lucide/svelte/icons/check-circle";
@@ -77,7 +78,13 @@
   {:else if viewState === "up_to_date"}
     <CheckCircle size={40} class="text-green-400 mb-3" />
     <p class="text-lg font-medium mb-1">You're up to date</p>
-    <p class="text-sm text-content-secondary">Version {currentVersion}</p>
+    <p class="text-sm text-content-secondary mb-3">Version {currentVersion}</p>
+    <button
+      onclick={() => getCurrentWindow().close()}
+      class="px-4 py-2 bg-surface-secondary hover:bg-surface-hover rounded text-sm font-medium transition-colors"
+    >
+      Close
+    </button>
 
   {:else if viewState === "available"}
     <Download size={40} class="text-accent mb-3" />
