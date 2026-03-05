@@ -159,16 +159,7 @@ pub fn build_pr_menu(
             let show_count = section.prs.len().min(5);
             for pr in &section.prs[..show_count] {
                 let age = time_ago(&pr.created_at);
-                let mut label = format!(
-                    "  {} #{} — {}",
-                    pr.repository,
-                    pr.number,
-                    truncate(&pr.title, 32),
-                );
-                if pr.comment_count > 0 {
-                    label.push_str(&format!("  💬{}", pr.comment_count));
-                }
-                label.push_str(&format!("  {}", age));
+                let label = format_pr_label(pr, &age);
 
                 let icon = avatar_cache.get_image(&pr.author_login);
                 let item = IconMenuItem::with_id(
@@ -199,16 +190,7 @@ pub fn build_pr_menu(
             let show_count = section.prs.len().min(5);
             for pr in &section.prs[..show_count] {
                 let age = time_ago(&pr.created_at);
-                let mut label = format!(
-                    "  {} #{} — {}",
-                    pr.repository,
-                    pr.number,
-                    truncate(&pr.title, 32),
-                );
-                if pr.comment_count > 0 {
-                    label.push_str(&format!("  💬{}", pr.comment_count));
-                }
-                label.push_str(&format!("  {}", age));
+                let label = format_pr_label(pr, &age);
 
                 let icon = avatar_cache.get_image(&pr.author_login);
                 let item = IconMenuItem::with_id(
@@ -288,6 +270,30 @@ pub fn build_auth_pending_menu(
     Ok(menu)
 }
 
+/// Maximum characters for the left portion of a PR label (prefix + title).
+/// The title is dynamically truncated to fit within this budget.
+const MAX_LEFT_WIDTH: usize = 42;
+
+/// Format a PR label with a tab stop so macOS right-aligns the suffix.
+///
+/// Native macOS menus treat `\t` as a right-aligned tab stop, so the suffix
+/// (comment count + age) lines up regardless of proportional-font glyph widths.
+fn format_pr_label(pr: &PullRequest, age: &str) -> String {
+    let suffix = if pr.comment_count > 0 {
+        format!("💬{}  {}", pr.comment_count, age)
+    } else {
+        age.to_string()
+    };
+
+    let prefix = format!("{} #{} — ", pr.repository, pr.number);
+    let prefix_len = prefix.chars().count();
+    let title_budget = MAX_LEFT_WIDTH.saturating_sub(prefix_len);
+
+    let title = truncate(&pr.title, title_budget);
+
+    format!("  {}{}\t{}", prefix, title, suffix)
+}
+
 fn time_ago(iso: &str) -> String {
     let Ok(dt) = chrono::DateTime::parse_from_rfc3339(iso) else {
         return String::new();
@@ -306,10 +312,15 @@ fn time_ago(iso: &str) -> String {
 }
 
 fn truncate(s: &str, max: usize) -> String {
+    if max == 0 {
+        return String::new();
+    }
     let mut chars = s.chars();
     let truncated: String = chars.by_ref().take(max).collect();
     if chars.next().is_some() {
-        format!("{}…", truncated)
+        // Reserve one char for the ellipsis so the result is exactly `max` chars.
+        let trimmed: String = truncated.chars().take(max - 1).collect();
+        format!("{}…", trimmed)
     } else {
         truncated
     }
