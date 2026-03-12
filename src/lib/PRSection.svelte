@@ -12,6 +12,10 @@
   let SectionIcon = $derived(section.icon);
   let visiblePrs = $derived(section.prs.slice(0, visibleCount));
   let hasMore = $derived(visibleCount < section.prs.length);
+
+  function destinationUrlFor(pr: (typeof section.prs)[number]): string {
+    return section.title === "Checks Failing" ? `${pr.url}/checks` : pr.url;
+  }
 </script>
 
 <div class="border-b border-border last:border-b-0">
@@ -38,7 +42,7 @@
   {#if !collapsed}
     <div class="pb-1">
       {#each visiblePrs as pr (pr.id)}
-        <PRCard {pr} />
+        <PRCard {pr} destinationUrl={destinationUrlFor(pr)} />
       {/each}
 
       {#if hasMore}

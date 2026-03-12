@@ -3,8 +3,9 @@
  * mounted, and rendered without crashing. Catches broken imports (like wrong
  * icon package paths) at test time instead of at runtime.
  */
-import { render, screen } from "@testing-library/svelte";
-import { describe, it, expect } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/svelte";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PullRequest, GitHubUser } from "./types";
 import { groupPrs } from "./stores";
@@ -42,6 +43,10 @@ const mockUser: GitHubUser = {
   avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
   name: "Test User",
 };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // groupPrs logic
@@ -117,9 +122,34 @@ describe("PRCard", () => {
     expect(img).toBeTruthy();
     expect(img?.getAttribute("src")).toContain("avatars.githubusercontent.com");
   });
+
+  it("opens a custom destination URL when the PR row is clicked", async () => {
+    const { default: PRCard } = await import("./PRCard.svelte");
+    const destinationUrl = `${mockPr.url}/checks`;
+    const { container } = render(PRCard, { props: { pr: mockPr, destinationUrl } });
+
+    await fireEvent.click(container.querySelector("button")!);
+
+    expect(openUrl).toHaveBeenCalledWith(destinationUrl);
+  });
 });
 
 describe("PRSection", () => {
+  it("opens the PR checks page for Checks Failing rows", async () => {
+    const failingPr = { ...mockPr, check_status: "failure" as const, review_decision: null };
+    const sections = groupPrs([failingPr]);
+    const checksFailing = sections.find(s => s.title === "Checks Failing");
+
+    expect(checksFailing).toBeTruthy();
+
+    const { default: PRSection } = await import("./PRSection.svelte");
+    const { container } = render(PRSection, { props: { section: checksFailing! } });
+
+    await fireEvent.click(container.querySelectorAll("button")[1]!);
+
+    expect(openUrl).toHaveBeenCalledWith(`${mockPr.url}/checks`);
+  });
+
   it("renders section title and PR count", async () => {
     const sections = groupPrs([mockPr]);
     const { default: PRSection } = await import("./PRSection.svelte");

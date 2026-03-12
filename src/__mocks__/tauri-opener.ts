@@ -1,2 +1,4 @@
 // Stub for @tauri-apps/plugin-opener
-export async function openUrl(_url: string): Promise<void> {}
+import { vi } from "vitest";
+
+export const openUrl = vi.fn(async (_url: string): Promise<void> => {});

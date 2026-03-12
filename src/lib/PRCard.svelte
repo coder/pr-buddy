@@ -6,8 +6,9 @@
 
   interface Props {
     pr: PullRequest;
+    destinationUrl?: string;
   }
-  let { pr }: Props = $props();
+  let { pr, destinationUrl = pr.url }: Props = $props();
 
   let repoDisplay = $derived(`${pr.owner}/${pr.repository}`);
 
@@ -22,7 +23,7 @@
   let age = $derived(timeAgo(pr.created_at));
 
   async function openPr() {
-    await openUrl(pr.url);
+    await openUrl(destinationUrl);
   }
 </script>
 
