@@ -162,9 +162,14 @@ pub fn build_pr_menu(
                 let label = format_pr_label(pr, &age);
 
                 let icon = avatar_cache.get_image(&pr.author_login);
+                let item_id = if section.title == "Checks Failing" {
+                    format!("pr_checks_{}", pr.id)
+                } else {
+                    format!("pr_{}", pr.id)
+                };
                 let item = IconMenuItem::with_id(
                     app,
-                    &format!("pr_{}", pr.id),
+                    &item_id,
                     &label,
                     true,
                     icon,
@@ -193,9 +198,14 @@ pub fn build_pr_menu(
                 let label = format_pr_label(pr, &age);
 
                 let icon = avatar_cache.get_image(&pr.author_login);
+                let item_id = if section.title == "Checks Failing" {
+                    format!("pr_checks_{}", pr.id)
+                } else {
+                    format!("pr_{}", pr.id)
+                };
                 let item = IconMenuItem::with_id(
                     app,
-                    &format!("pr_{}", pr.id),
+                    &item_id,
                     &label,
                     true,
                     icon,

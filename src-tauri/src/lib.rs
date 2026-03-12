@@ -330,6 +330,17 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
             }
         }
 
+        id if id.starts_with("pr_checks_") => {
+            let pr_id = &id[10..];
+            let state = app.state::<state::AppState>();
+            let prs = state.prs.lock().unwrap();
+            if let Some(pr) = prs.iter().find(|p| p.id == pr_id) {
+                use tauri_plugin_opener::OpenerExt;
+                let checks_url = format!("{}/checks", pr.url);
+                let _ = app.opener().open_url(&checks_url, None::<&str>);
+            }
+        }
+
         id if id.starts_with("pr_") => {
             let pr_id = &id[3..];
             let state = app.state::<state::AppState>();
