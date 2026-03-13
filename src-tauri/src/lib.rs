@@ -299,6 +299,14 @@ fn handle_menu_event(app: &tauri::AppHandle, id: &str) {
             });
         }
 
+        "open_panel" => {
+            let _ = app.emit("show-merged", ());
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }
+
         "settings" => {
             let _ = app.emit("open-settings", ());
             if let Some(window) = app.get_webview_window("main") {

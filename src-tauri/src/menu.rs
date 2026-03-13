@@ -1,5 +1,5 @@
 use tauri::AppHandle;
-use tauri::menu::{IconMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{IconMenuItem, Menu, MenuItem, PredefinedMenuItem};
 
 use crate::avatars::AvatarCache;
 use crate::models::{CheckStatus, PrState, PullRequest};
@@ -10,7 +10,7 @@ struct PrSection {
     default_collapsed: bool,
 }
 
-/// Port of src/lib/stores.ts groupPrs() with tray-specific section ordering.
+/// Port of src/lib/stores.ts groupPrs() matching its section ordering.
 fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
     let review_requested: Vec<_> = all_prs
         .iter()
@@ -81,15 +81,46 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
             default_collapsed: false,
         },
         PrSection {
+            title: "Mergeable".into(),
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| {
+                    pr.merge_queue_info.is_none()
+                        && pr.check_status == CheckStatus::Success
+                        && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
+                        && pr.review_decision.as_deref() != Some("APPROVED")
+                        && (pr.review_decision.as_deref() == Some("REVIEW_REQUIRED")
+                            || pr.review_decision.is_none())
+                })
+                .cloned()
+                .collect(),
+            default_collapsed: false,
+        },
+        PrSection {
+            title: "Checks Running".into(),
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| {
+                    pr.merge_queue_info.is_none()
+                        && pr.check_status == CheckStatus::Pending
+                        && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
+                        && pr.review_decision.as_deref() != Some("APPROVED")
+                })
+                .cloned()
+                .collect(),
+            default_collapsed: false,
+        },
+        PrSection {
             title: "Waiting for Review".into(),
             prs: non_draft_open
                 .iter()
                 .filter(|pr| {
                     pr.merge_queue_info.is_none()
-                        && pr.check_status != CheckStatus::Failure
-                        && pr.check_status != CheckStatus::Error
+                        && pr.check_status == CheckStatus::None
                         && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
                         && pr.review_decision.as_deref() != Some("APPROVED")
+                        && (pr.review_decision.as_deref() == Some("REVIEW_REQUIRED")
+                            || pr.review_decision.is_none())
                 })
                 .cloned()
                 .collect(),
@@ -148,37 +179,9 @@ pub fn build_pr_menu(
         first = false;
 
         if section.default_collapsed {
-            let sub_title = format!("{} ({})", section.title, section.prs.len());
-            let submenu = Submenu::with_id(
-                app,
-                &format!("section_{}", section.title),
-                &sub_title,
-                true,
-            )?;
-
-            let show_count = section.prs.len().min(5);
-            for pr in &section.prs[..show_count] {
-                let age = time_ago(&pr.created_at);
-                let label = format_pr_label(pr, &age);
-
-                let icon = avatar_cache.get_image(&pr.author_login);
-                let item_id = if section.title == "Checks Failing" {
-                    format!("pr_checks_{}", pr.id)
-                } else {
-                    format!("pr_{}", pr.id)
-                };
-                let item = IconMenuItem::with_id(
-                    app,
-                    &item_id,
-                    &label,
-                    true,
-                    icon,
-                    None::<&str>,
-                )?;
-                submenu.append(&item)?;
-            }
-
-            menu.append(&submenu)?;
+            let item_text = format!("{} ({})", section.title, section.prs.len());
+            let item = MenuItem::with_id(app, "open_panel", &item_text, true, None::<&str>)?;
+            menu.append(&item)?;
         } else {
             // Section header (disabled)
             let header_text = format!("{} ({})", section.title, section.prs.len());

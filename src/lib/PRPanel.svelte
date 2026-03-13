@@ -18,8 +18,20 @@
     onRefresh: () => void;
     onLogout: () => void;
     onOpenSettings: () => void;
+    focusSection?: string | null;
+    onClearFocus?: (() => void) | null;
   }
-  let { prs, user, lastUpdated, refreshing, onRefresh, onLogout, onOpenSettings }: Props = $props();
+  let {
+    prs,
+    user,
+    lastUpdated,
+    refreshing,
+    onRefresh,
+    onLogout,
+    onOpenSettings,
+    focusSection = null,
+    onClearFocus = null,
+  }: Props = $props();
 
   let now = $state(new Date());
   $effect(() => {
@@ -27,7 +39,12 @@
     return () => clearInterval(id);
   });
 
-  let sections = $derived(groupPrs(prs));
+  let allSections = $derived(groupPrs(prs));
+  let visibleSections = $derived(
+    focusSection
+      ? allSections.filter(s => s.title === focusSection)
+      : allSections,
+  );
   let totalPrs = $derived(prs.filter(pr => pr.state === "open").length);
 
   function relativeTime(date: Date | null): string {
@@ -75,6 +92,14 @@
 </div>
 
 <!-- Body -->
+{#if focusSection}
+  <button
+    onclick={() => onClearFocus?.()}
+    class="flex items-center gap-1 px-4 py-2 text-xs text-accent hover:text-accent-hover transition-colors border-b border-border w-full text-left"
+  >
+    ← All PRs
+  </button>
+{/if}
 <div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
   {#if prs.length === 0}
     <div class="flex flex-col items-center justify-center h-full text-content-tertiary gap-2">
@@ -82,15 +107,15 @@
       <p class="text-sm">No pull requests found</p>
       <p class="text-xs text-content-tertiary">Your PRs will appear here</p>
     </div>
-  {:else if sections.length === 0}
+  {:else if visibleSections.length === 0}
     <div class="flex flex-col items-center justify-center h-full text-content-tertiary gap-2">
       <PartyPopper size={24} class="text-content-tertiary" />
       <p class="text-sm">All clear!</p>
     </div>
   {:else}
     <div class="py-1">
-      {#each sections as section (section.title)}
-        <PRSection {section} />
+      {#each visibleSections as section (section.title)}
+        <PRSection {section} expandAll={focusSection === section.title} />
       {/each}
     </div>
   {/if}

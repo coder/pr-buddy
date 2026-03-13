@@ -4,14 +4,19 @@
 
   interface Props {
     section: PrSection;
+    expandAll?: boolean;
   }
-  let { section }: Props = $props();
+  let { section, expandAll = false }: Props = $props();
 
-  let collapsed = $state(section.defaultCollapsed ?? false);
+  const getInitialCollapsed = () => section.defaultCollapsed ?? false;
+  let collapsed = $state(getInitialCollapsed());
   let visibleCount = $state(5);
   let SectionIcon = $derived(section.icon);
   let visiblePrs = $derived(section.prs.slice(0, visibleCount));
   let hasMore = $derived(visibleCount < section.prs.length);
+  let effectiveCollapsed = $derived(expandAll ? false : collapsed);
+  let effectiveVisiblePrs = $derived(expandAll ? section.prs : visiblePrs);
+  let effectiveHasMore = $derived(expandAll ? false : hasMore);
 
   function destinationUrlFor(pr: (typeof section.prs)[number]): string {
     return section.title === "Checks Failing" ? `${pr.url}/checks` : pr.url;
@@ -32,20 +37,20 @@
       </span>
     </div>
     <svg
-      class="w-3 h-3 text-content-tertiary transition-transform {collapsed ? '-rotate-90' : ''}"
+      class="w-3 h-3 text-content-tertiary transition-transform {effectiveCollapsed ? '-rotate-90' : ''}"
       fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"
     >
       <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
     </svg>
   </button>
 
-  {#if !collapsed}
+  {#if !effectiveCollapsed}
     <div class="pb-1">
-      {#each visiblePrs as pr (pr.id)}
+      {#each effectiveVisiblePrs as pr (pr.id)}
         <PRCard {pr} destinationUrl={destinationUrlFor(pr)} />
       {/each}
 
-      {#if hasMore}
+      {#if effectiveHasMore}
         <button
           onclick={() => { visibleCount += 5; }}
           class="w-full text-[11px] text-content-tertiary hover:text-content-secondary py-1.5 px-4
