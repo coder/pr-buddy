@@ -44,22 +44,6 @@ pub fn start_polling(app_handle: AppHandle) {
                             diff_pr_states(&previous, &new_prs)
                         };
 
-                        // Send notifications for state changes (gated by user settings)
-                        {
-                            let settings = app_handle.state::<AppState>().settings.lock().unwrap().clone();
-                            for event in &events {
-                                let should_notify = match event {
-                                    PrEvent::ChecksFailed(_) => settings.notify_checks_failed,
-                                    PrEvent::ChecksPassed(_) => settings.notify_checks_passed,
-                                    PrEvent::Merged(_) => settings.notify_merged,
-                                    PrEvent::RemovedFromMergeQueue(_) => settings.notify_removed_from_queue,
-                                };
-                                if should_notify {
-                                    send_notification(&app_handle, event);
-                                }
-                            }
-                        }
-
                         // Update stored state
                         {
                             let state = app_handle.state::<AppState>();
@@ -74,6 +58,25 @@ pub fn start_polling(app_handle: AppHandle) {
 
                             let mut last_poll = state.last_poll.lock().unwrap();
                             *last_poll = Some(chrono::Utc::now());
+                        }
+
+                        // Emit to frontend webview
+                        let _ = app_handle.emit("prs-updated", &new_prs);
+
+                        // Send notifications for state changes (gated by user settings)
+                        {
+                            let settings = app_handle.state::<AppState>().settings.lock().unwrap().clone();
+                            for event in &events {
+                                let should_notify = match event {
+                                    PrEvent::ChecksFailed(_) => settings.notify_checks_failed,
+                                    PrEvent::ChecksPassed(_) => settings.notify_checks_passed,
+                                    PrEvent::Merged(_) => settings.notify_merged,
+                                    PrEvent::RemovedFromMergeQueue(_) => settings.notify_removed_from_queue,
+                                };
+                                if should_notify {
+                                    send_notification(&app_handle, event);
+                                }
+                            }
                         }
 
                         // Fetch avatars for any new authors
@@ -96,9 +99,6 @@ pub fn start_polling(app_handle: AppHandle) {
                                 }
                             }
                         }
-
-                        // Emit to frontend webview
-                        let _ = app_handle.emit("prs-updated", &new_prs);
 
                         // Adaptive sleep
                         let interval = if has_active_items(&new_prs) {
