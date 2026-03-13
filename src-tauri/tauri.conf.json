@@ -1,6 +1,6 @@
 {
   "productName": "PR Buddy",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "identifier": "com.prbuddy.dev",
   "build": {
     "beforeDevCommand": "npm run vite:dev",
