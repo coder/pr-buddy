@@ -8,6 +8,7 @@
   import SettingsPage from "./lib/SettingsPage.svelte";
   import UpdateDialog from "./lib/UpdateDialog.svelte";
   import TitleBar from "./lib/TitleBar.svelte";
+  import { RECENTLY_MERGED_SECTION_TITLE } from "./lib/constants";
   import "./lib/theme.svelte.ts";
 
   const isUpdaterWindow =
@@ -20,6 +21,7 @@
   let refreshing = $state(false);
   let checkingAuth = $state(true);
   let view = $state<"panel" | "settings">("panel");
+  let focusSection = $state<string | null>(null);
   let settings = $state<UserSettings>({
     notify_checks_failed: true,
     notify_checks_passed: true,
@@ -31,6 +33,7 @@
   let unlisten: (() => void) | undefined;
   let unlistenAuth: (() => void) | undefined;
   let unlistenSettings: (() => void) | undefined;
+  let unlistenShowMerged: (() => void) | undefined;
 
   async function init() {
     // Load settings independently — they're local and should not fail with network errors
@@ -92,6 +95,7 @@
       prList = [];
       userInfo = null;
       lastUpdated = null;
+      focusSection = null;
     } catch (e) {
       console.error("[app] Logout failed:", e);
     }
@@ -130,6 +134,7 @@
       prList = [];
       userInfo = null;
       lastUpdated = null;
+      focusSection = null;
     });
     unlistenSettings = await listen("open-settings", async () => {
       // Re-check auth: user may have signed in via tray menu
@@ -143,7 +148,12 @@
           console.error("[app] Re-auth check failed:", e);
         }
       }
+      focusSection = null;
       view = "settings";
+    });
+    unlistenShowMerged = await listen("show-merged", () => {
+      view = "panel";
+      focusSection = RECENTLY_MERGED_SECTION_TITLE;
     });
     await init();
   }
@@ -156,6 +166,7 @@
     unlisten?.();
     unlistenAuth?.();
     unlistenSettings?.();
+    unlistenShowMerged?.();
   });
 </script>
 
@@ -187,7 +198,9 @@
         {refreshing}
         onRefresh={handleRefresh}
         onLogout={handleLogout}
-        onOpenSettings={() => view = "settings"}
+        onOpenSettings={() => { focusSection = null; view = "settings"; }}
+        {focusSection}
+        onClearFocus={() => { focusSection = null; }}
       />
     {/if}
   </main>

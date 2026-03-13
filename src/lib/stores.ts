@@ -10,6 +10,7 @@ import FileEdit from "@lucide/svelte/icons/file-edit";
 import GitMerge from "@lucide/svelte/icons/git-merge";
 import UserCheck from "@lucide/svelte/icons/user-check";
 import type { PullRequest, GitHubUser, PrSection } from "./types";
+import { RECENTLY_MERGED_SECTION_TITLE } from "./constants";
 
 export const prs = writable<PullRequest[]>([]);
 export const user = writable<GitHubUser | null>(null);
@@ -101,7 +102,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       prs: drafts,
     },
     {
-      title: "Recently Merged",
+      title: RECENTLY_MERGED_SECTION_TITLE,
       icon: GitMerge,
       prs: myPrs.filter(pr => pr.state === "merged"),
       defaultCollapsed: true,

@@ -156,6 +156,31 @@ describe("PRSection", () => {
     render(PRSection, { props: { section: sections[0] } });
     expect(screen.getByText("Approved")).toBeTruthy();
   });
+
+  it("expands all PRs when expandAll is true (no pagination)", async () => {
+    const manyPrs = Array.from({ length: 8 }, (_, i) => ({
+      ...mockPr,
+      id: `PR_expand_${i}`,
+      number: 100 + i,
+      title: `PR ${100 + i}`,
+      state: "merged" as const,
+    }));
+    const { RECENTLY_MERGED_SECTION_TITLE } = await import("./constants");
+    const section: import("./types").PrSection = {
+      title: RECENTLY_MERGED_SECTION_TITLE,
+      icon: (await import("@lucide/svelte/icons/git-merge")).default,
+      prs: manyPrs,
+      defaultCollapsed: true,
+    };
+    const { default: PRSection } = await import("./PRSection.svelte");
+    render(PRSection, { props: { section, expandAll: true } });
+
+    for (const pr of manyPrs) {
+      expect(screen.getByText(pr.title)).toBeTruthy();
+    }
+
+    expect(screen.queryByText(/Show more/)).toBeFalsy();
+  });
 });
 
 describe("PRPanel", () => {
@@ -173,6 +198,59 @@ describe("PRPanel", () => {
       },
     });
     expect(screen.getByText("Approved")).toBeTruthy();
+  });
+
+  it("shows only the focused section with back control in focus mode", async () => {
+    const { RECENTLY_MERGED_SECTION_TITLE } = await import("./constants");
+    const approvedPr = { ...mockPr, id: "PR_A1", state: "open" as const, review_decision: "APPROVED" };
+    const mergedPr = { ...mockPr, id: "PR_M1", state: "merged" as const };
+    const clearFocusFn = vi.fn();
+
+    const { default: PRPanel } = await import("./PRPanel.svelte");
+    render(PRPanel, {
+      props: {
+        prs: [approvedPr, mergedPr],
+        user: mockUser,
+        lastUpdated: new Date(),
+        refreshing: false,
+        onRefresh: () => {},
+        onLogout: () => {},
+        onOpenSettings: () => {},
+        focusSection: RECENTLY_MERGED_SECTION_TITLE,
+        onClearFocus: clearFocusFn,
+      },
+    });
+
+    expect(screen.getByText("Recently Merged")).toBeTruthy();
+    expect(screen.queryByText("Approved")).toBeFalsy();
+
+    const backBtn = screen.getByText("← All PRs");
+    expect(backBtn).toBeTruthy();
+
+    await fireEvent.click(backBtn);
+    expect(clearFocusFn).toHaveBeenCalledOnce();
+  });
+
+  it("shows all sections without back control in normal mode", async () => {
+    const approvedPr = { ...mockPr, id: "PR_A2", state: "open" as const, review_decision: "APPROVED" };
+    const mergedPr = { ...mockPr, id: "PR_M2", state: "merged" as const };
+
+    const { default: PRPanel } = await import("./PRPanel.svelte");
+    render(PRPanel, {
+      props: {
+        prs: [approvedPr, mergedPr],
+        user: mockUser,
+        lastUpdated: new Date(),
+        refreshing: false,
+        onRefresh: () => {},
+        onLogout: () => {},
+        onOpenSettings: () => {},
+      },
+    });
+
+    expect(screen.getByText("Approved")).toBeTruthy();
+    expect(screen.getByText("Recently Merged")).toBeTruthy();
+    expect(screen.queryByText("← All PRs")).toBeFalsy();
   });
 });
 
