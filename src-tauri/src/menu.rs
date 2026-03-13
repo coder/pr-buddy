@@ -10,7 +10,7 @@ struct PrSection {
     default_collapsed: bool,
 }
 
-/// Port of src/lib/stores.ts groupPrs() with tray-specific section ordering.
+/// Port of src/lib/stores.ts groupPrs() matching its section ordering.
 fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
     let review_requested: Vec<_> = all_prs
         .iter()
@@ -81,15 +81,46 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
             default_collapsed: false,
         },
         PrSection {
+            title: "Mergeable".into(),
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| {
+                    pr.merge_queue_info.is_none()
+                        && pr.check_status == CheckStatus::Success
+                        && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
+                        && pr.review_decision.as_deref() != Some("APPROVED")
+                        && (pr.review_decision.as_deref() == Some("REVIEW_REQUIRED")
+                            || pr.review_decision.is_none())
+                })
+                .cloned()
+                .collect(),
+            default_collapsed: false,
+        },
+        PrSection {
+            title: "Checks Running".into(),
+            prs: non_draft_open
+                .iter()
+                .filter(|pr| {
+                    pr.merge_queue_info.is_none()
+                        && pr.check_status == CheckStatus::Pending
+                        && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
+                        && pr.review_decision.as_deref() != Some("APPROVED")
+                })
+                .cloned()
+                .collect(),
+            default_collapsed: false,
+        },
+        PrSection {
             title: "Waiting for Review".into(),
             prs: non_draft_open
                 .iter()
                 .filter(|pr| {
                     pr.merge_queue_info.is_none()
-                        && pr.check_status != CheckStatus::Failure
-                        && pr.check_status != CheckStatus::Error
+                        && pr.check_status == CheckStatus::None
                         && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
                         && pr.review_decision.as_deref() != Some("APPROVED")
+                        && (pr.review_decision.as_deref() == Some("REVIEW_REQUIRED")
+                            || pr.review_decision.is_none())
                 })
                 .cloned()
                 .collect(),
