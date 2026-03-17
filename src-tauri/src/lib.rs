@@ -2,6 +2,7 @@ mod avatars;
 mod auth;
 mod autostart;
 mod github;
+mod macos_notifications;
 mod menu;
 mod models;
 mod notifications;
@@ -101,6 +102,15 @@ pub fn run() {
                     Ok(state) => eprintln!("[notifications] Permission state: {:?}", state),
                     Err(e) => eprintln!("[notifications] Failed to request permission: {}", e),
                 }
+            }
+
+            #[cfg(target_os = "macos")]
+            match macos_notifications::register_delegate(app.handle()) {
+                Ok(()) => eprintln!("[macos_notifications] Registered notification click delegate"),
+                Err(error) => eprintln!(
+                    "[macos_notifications] Failed to register notification click delegate: {}",
+                    error
+                ),
             }
 
             #[cfg(target_os = "macos")]
