@@ -26,13 +26,13 @@
 <div class="border-b border-border last:border-b-0">
   <button
     onclick={() => { collapsed = !collapsed; }}
-    class="w-full flex items-center justify-between px-4 py-2 hover:bg-surface-hover
+    class="w-full flex items-center justify-between px-4 py-1.5 hover:bg-surface-hover
            transition-colors text-left"
   >
     <div class="flex items-center gap-2">
       <SectionIcon size={14} class="text-content-secondary" />
-      <span class="text-xs font-medium text-content-secondary">{section.title}</span>
-      <span class="text-[10px] text-content-tertiary bg-surface-secondary px-1.5 py-0.5 rounded-full">
+      <span class="text-[11px] font-medium uppercase tracking-wider text-content-secondary">{section.title}</span>
+      <span class="flex min-w-[16px] items-center justify-center rounded-full bg-surface-secondary px-1.5 py-0.5 text-[9px] text-content-tertiary">
         {section.prs.length}
       </span>
     </div>

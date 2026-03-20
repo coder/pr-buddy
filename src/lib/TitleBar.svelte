@@ -2,23 +2,21 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Minus from "@lucide/svelte/icons/minus";
   import X from "@lucide/svelte/icons/x";
-  import Bell from "@lucide/svelte/icons/bell";
 </script>
 
 <div
   data-tauri-drag-region
-  class="flex items-center justify-between h-9 px-3
+  class="flex items-center justify-between h-8 px-2.5
          bg-surface border-b border-border shrink-0 select-none"
 >
-  <div class="flex items-center gap-2 pointer-events-none">
-    <Bell size={16} class="text-content-secondary" />
-    <span class="text-xs font-semibold text-content">PR Buddy</span>
+  <div class="pointer-events-none">
+    <span class="text-[11px] font-medium text-content-secondary">PR Buddy</span>
   </div>
   <div class="flex items-center gap-0.5">
     <button
       onclick={() => getCurrentWindow().minimize()}
-      class="p-1 rounded text-content-tertiary hover:text-content
-             hover:bg-surface-hover transition-colors"
+      class="flex h-6 w-6 items-center justify-center rounded-md text-content-tertiary
+             hover:bg-surface-hover hover:text-content transition-colors"
     >
       <Minus size={14} />
     </button>
@@ -31,8 +29,8 @@
           win.close();
         }
       }}
-      class="p-1 rounded text-content-tertiary hover:text-content
-             hover:bg-surface-hover transition-colors"
+      class="flex h-6 w-6 items-center justify-center rounded-md text-content-tertiary
+             hover:bg-surface-hover hover:text-content transition-colors"
     >
       <X size={14} />
     </button>

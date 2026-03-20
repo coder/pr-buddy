@@ -58,10 +58,10 @@
 </script>
 
 <!-- Header -->
-<div class="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+<div class="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0">
   <div class="flex items-center gap-2">
     {#if totalPrs > 0}
-      <span class="text-[10px] bg-accent text-white px-1.5 py-0.5 rounded-full font-medium">
+      <span class="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent/90 px-1 text-[9px] font-medium text-white">
         {totalPrs}
       </span>
     {/if}
@@ -123,7 +123,7 @@
 
 <!-- Footer -->
 <div class="flex items-center justify-between px-4 py-2 border-t border-border shrink-0">
-  <span class="text-[11px] text-content-tertiary">
+  <span class="text-[10px] text-content-tertiary">
     Updated {relativeTime(lastUpdated)}
   </span>
   <div class="flex items-center gap-1">
@@ -138,11 +138,11 @@
     <button
       onclick={onRefresh}
       disabled={refreshing}
-      class="flex items-center gap-1 text-[11px] text-content-tertiary hover:text-content-secondary
-             transition-colors disabled:opacity-50 py-1 px-2 rounded hover:bg-surface-hover"
+      title="Refresh"
+      class="flex h-7 w-7 items-center justify-center text-content-tertiary hover:text-content-secondary
+             transition-colors disabled:opacity-50 rounded hover:bg-surface-hover"
     >
       <RefreshCw size={12} class={refreshing ? "animate-spin" : ""} />
-      Refresh
     </button>
   </div>
 </div>

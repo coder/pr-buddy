@@ -29,7 +29,7 @@
 
 <button
   onclick={openPr}
-  class="w-full flex items-center gap-2.5 px-4 py-2 hover:bg-surface-hover transition-colors
+  class="w-full flex items-center gap-2.5 px-4 py-1.5 hover:bg-surface-hover transition-colors
          text-left group cursor-pointer"
 >
   <!-- Author avatar -->
@@ -40,17 +40,17 @@
   <StatusBadge {pr} />
 
   <div class="flex-1 min-w-0">
-    <p class="text-[13px] text-content truncate leading-tight group-hover:text-accent-blue">
+    <p class="text-[12px] text-content truncate leading-tight group-hover:text-accent-blue">
       {pr.title}
     </p>
-    <div class="flex items-center gap-1.5 mt-0.5">
-      <span class="text-[11px] text-content-tertiary">{repoDisplay}</span>
-      <span class="text-[11px] text-content-tertiary">·</span>
-      <span class="text-[11px] text-content-tertiary">#{pr.number}</span>
+    <div class="flex items-center gap-1.5 mt-0.5 text-[10px]">
+      <span class="text-content-tertiary">{repoDisplay}</span>
+      <span class="text-content-tertiary">·</span>
+      <span class="text-content-tertiary">#{pr.number}</span>
       {#if pr.additions > 0 || pr.deletions > 0}
-        <span class="text-[11px] text-content-tertiary">·</span>
-        <span class="text-[10px] text-green-600">+{pr.additions}</span>
-        <span class="text-[10px] text-red-500">-{pr.deletions}</span>
+        <span class="text-content-tertiary">·</span>
+        <span class="text-green-600/80">+{pr.additions}</span>
+        <span class="text-red-500/80">-{pr.deletions}</span>
       {/if}
     </div>
   </div>
