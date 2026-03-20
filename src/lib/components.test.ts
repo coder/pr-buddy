@@ -280,13 +280,13 @@ describe("UpdateDialog", () => {
 
 
 describe("TitleBar", () => {
-  it("renders the invisible drag strip", async () => {
+  it("renders drag region with close button", async () => {
     const { default: TitleBar } = await import("./TitleBar.svelte");
     const { container } = render(TitleBar);
-    const dragStrip = container.querySelector("[data-tauri-drag-region]");
+    const dragRegion = container.querySelector("[data-tauri-drag-region]");
 
-    expect(dragStrip).toBeTruthy();
-    expect(dragStrip?.className).toContain("bg-transparent");
+    expect(dragRegion).toBeTruthy();
+    expect(container.querySelector("button")).toBeTruthy();
   });
 });
 
