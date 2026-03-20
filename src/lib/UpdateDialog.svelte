@@ -76,28 +76,28 @@
     <p class="text-sm text-content-secondary">Checking for updates...</p>
 
   {:else if viewState === "up_to_date"}
-    <CheckCircle size={40} class="text-green-400 mb-3" />
+    <CheckCircle size={32} class="text-emerald-500 mb-3" />
     <p class="text-lg font-medium mb-1">You're up to date</p>
     <p class="text-sm text-content-secondary mb-3">Version {currentVersion}</p>
     <button
       onclick={() => getCurrentWindow().close()}
-      class="px-4 py-2 bg-surface-secondary hover:bg-surface-hover rounded text-sm font-medium transition-colors"
+      class="px-4 py-2 bg-surface-secondary hover:bg-surface-hover rounded-md text-sm font-medium transition-colors"
     >
       Close
     </button>
 
   {:else if viewState === "available"}
-    <Download size={40} class="text-accent mb-3" />
+    <Download size={32} class="text-accent mb-3" />
     <p class="text-lg font-medium mb-1">Update available</p>
     <p class="text-sm text-content-secondary mb-3">Version {newVersion}</p>
     {#if releaseNotes}
-      <div class="w-full max-h-24 overflow-y-auto text-xs text-content-tertiary bg-surface-secondary rounded p-2 mb-4 whitespace-pre-wrap">
+      <div class="mb-4 max-h-24 w-full overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface-secondary p-2 text-[11px] text-content-tertiary">
         {releaseNotes}
       </div>
     {/if}
     <button
       onclick={installUpdate}
-      class="px-4 py-2 bg-accent hover:bg-accent-hover rounded text-sm font-medium transition-colors"
+      class="px-4 py-2 bg-accent hover:bg-accent-hover rounded-md text-sm font-medium transition-colors"
     >
       Install &amp; Restart
     </button>
@@ -113,12 +113,12 @@
     <p class="text-xs text-content-tertiary">{Math.round(downloadProgress)}%</p>
 
   {:else if viewState === "error"}
-    <AlertCircle size={40} class="text-red-400 mb-3" />
+    <AlertCircle size={32} class="text-red-400 mb-3" />
     <p class="text-lg font-medium mb-1">Update failed</p>
     <p class="text-sm text-content-secondary mb-3 text-center max-w-xs">{errorMessage}</p>
     <button
       onclick={checkForUpdate}
-      class="px-4 py-2 bg-surface-secondary hover:bg-surface-hover rounded text-sm font-medium transition-colors"
+      class="px-4 py-2 bg-surface-secondary hover:bg-surface-hover rounded-md text-sm font-medium transition-colors"
     >
       Retry
     </button>

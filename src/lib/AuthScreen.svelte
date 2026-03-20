@@ -103,7 +103,7 @@
     <button
       onclick={startFlow}
       class="w-full max-w-[280px] flex items-center justify-center gap-2 bg-content text-surface font-semibold
-             py-2.5 px-5 rounded-lg hover:opacity-90 transition-colors"
+             py-2.5 px-5 rounded-md shadow-sm hover:opacity-90 transition-colors"
     >
       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205
@@ -125,7 +125,7 @@
     <div class="flex flex-col items-center gap-5 w-full max-w-[300px]">
       <p class="text-content-secondary text-sm text-center">Enter this code on GitHub:</p>
 
-      <div class="bg-surface-secondary border border-border rounded-xl py-4 px-6 w-full text-center">
+      <div class="bg-surface-secondary border border-border rounded-lg py-4 px-6 w-full text-center">
         <span class="text-2xl font-mono font-bold tracking-[0.3em] text-content">
           {deviceResponse.user_code}
         </span>
@@ -134,14 +134,14 @@
       <div class="flex gap-2 w-full">
         <button
           onclick={copyCode}
-          class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors
-                 {copied ? 'bg-green-600 text-white' : 'bg-surface-secondary text-content-secondary hover:bg-surface-hover'}"
+          class="flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors
+                 {copied ? 'bg-emerald-500 text-white' : 'bg-surface-secondary text-content-secondary hover:bg-surface-hover'}"
         >
           {copied ? "✓ Copied" : "Copy Code"}
         </button>
         <button
           onclick={openGitHub}
-          class="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-accent text-white
+          class="flex-1 py-2 px-3 rounded-md text-sm font-medium bg-accent text-white
                  hover:bg-accent-hover transition-colors"
         >
           Open GitHub →
@@ -163,7 +163,7 @@
       <p class="text-red-400 text-sm">{errorMsg}</p>
       <button
         onclick={() => { step = "idle"; }}
-        class="py-2 px-5 rounded-lg text-sm font-medium bg-surface-secondary text-content-secondary
+        class="py-2 px-5 rounded-md text-sm font-medium bg-surface-secondary text-content-secondary
                hover:bg-surface-hover transition-colors"
       >
         Try Again

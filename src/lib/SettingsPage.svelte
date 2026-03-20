@@ -171,7 +171,7 @@
 </div>
 
 <!-- Body -->
-<div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin px-4 py-3 space-y-5">
+<div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin px-4 py-3 space-y-4">
   {#if !loaded}
     <div class="flex items-center justify-center py-8">
       <div class="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
@@ -179,7 +179,7 @@
   {:else}
     <!-- General -->
     <section>
-      <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide mb-2">General</h2>
+      <h2 class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-content-tertiary">General</h2>
       <button
         onclick={toggleLaunchAtLogin}
         disabled={!autoStartLoaded}
@@ -189,11 +189,11 @@
       >
         <span class="text-sm text-content">Launch at Login</span>
         <div
-          class="w-8 h-[18px] rounded-full transition-colors relative
-                 {launchAtLoginEnabled ? 'bg-accent' : 'bg-surface-secondary'}"
+          class="relative h-[20px] w-[34px] rounded-full transition-all duration-200
+                 {launchAtLoginEnabled ? 'bg-accent' : 'bg-neutral-300 dark:bg-neutral-600'}"
         >
           <div
-            class="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform
+            class="absolute top-[2px] h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200
                    {launchAtLoginEnabled ? 'translate-x-[16px]' : 'translate-x-[2px]'}"
           ></div>
         </div>
@@ -202,8 +202,8 @@
 
     <!-- Theme -->
     <section>
-      <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide mb-2">Theme</h2>
-      <div class="flex gap-1">
+      <h2 class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-content-tertiary">Theme</h2>
+      <div class="flex rounded-lg bg-surface-secondary p-0.5 gap-0.5">
         {#each [
           { value: "system", label: "System", Icon: Monitor },
           { value: "light", label: "Light", Icon: Sun },
@@ -211,10 +211,10 @@
         ] as opt (opt.value)}
           <button
             onclick={() => selectTheme(opt.value as ThemePreference)}
-            class="flex items-center gap-1.5 flex-1 justify-center py-1.5 px-2 rounded-lg text-xs font-medium transition-colors
+            class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors
                    {currentTheme === opt.value
-                     ? 'bg-accent text-white'
-                     : 'bg-surface-secondary text-content-secondary hover:bg-surface-hover'}"
+                     ? 'bg-surface text-content shadow-sm'
+                     : 'bg-transparent text-content-secondary hover:text-content'}"
           >
             <opt.Icon size={13} />
             {opt.label}
@@ -225,9 +225,9 @@
 
     <!-- Notifications -->
     <section>
-      <div class="flex items-center gap-1.5 mb-2">
-        <Bell size={13} class="text-content-secondary" />
-        <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide">Notifications</h2>
+      <div class="mb-2 flex items-center gap-1.5">
+        <Bell size={13} class="text-content-tertiary" />
+        <h2 class="text-[10px] font-semibold uppercase tracking-widest text-content-tertiary">Notifications</h2>
       </div>
       <div class="space-y-1">
         {#each notificationItems as item (item.key)}
@@ -236,16 +236,13 @@
             class="flex items-center justify-between w-full px-3 py-2 rounded-lg
                    hover:bg-surface-hover transition-colors text-left"
           >
-            <span class="flex items-center gap-2 text-sm text-content">
-              <span class="text-xs">{item.emoji}</span>
-              {item.label}
-            </span>
+            <span class="text-sm text-content">{item.label}</span>
             <div
-              class="w-8 h-[18px] rounded-full transition-colors relative
-                     {(settings as any)[item.key] ? 'bg-accent' : 'bg-surface-secondary'}"
+              class="relative h-[20px] w-[34px] rounded-full transition-all duration-200
+                     {(settings as any)[item.key] ? 'bg-accent' : 'bg-neutral-300 dark:bg-neutral-600'}"
             >
               <div
-                class="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-transform
+                class="absolute top-[2px] h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200
                        {(settings as any)[item.key] ? 'translate-x-[16px]' : 'translate-x-[2px]'}"
               ></div>
             </div>
@@ -256,10 +253,10 @@
 
     <!-- Repositories -->
     <section>
-      <div class="flex items-center justify-between mb-2">
+      <div class="mb-2 flex items-center justify-between">
         <div class="flex items-center gap-1.5">
-          <GitBranch size={13} class="text-content-secondary" />
-          <h2 class="text-xs font-semibold text-content-secondary uppercase tracking-wide">Repositories</h2>
+          <GitBranch size={13} class="text-content-tertiary" />
+          <h2 class="text-[10px] font-semibold uppercase tracking-widest text-content-tertiary">Repositories</h2>
         </div>
         {#if allRepos.length > 0}
           <button
