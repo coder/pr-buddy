@@ -3,38 +3,38 @@
 @tailwind utilities;
 
 :root {
-  font-family: "Geist Variable", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
   /* Light theme (default) */
   --surface: #FFFFFF;
-  --surface-secondary: #F8F2F1;
-  --surface-hover: #FBF8F8;
-  --border: #E5E1E0;
-  --content: #090B0B;
-  --content-secondary: #4A408F;
-  --content-tertiary: #6B6577;
-  --accent: #1D4D7D;
-  --accent-hover: #163B62;
-  --accent-subtle: rgba(29, 77, 125, 0.1);
-  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+  --surface-secondary: #F5F5F5;
+  --surface-hover: #EBEBEB;
+  --border: #D5D5D5;
+  --content: #1D1D1F;
+  --content-secondary: #6E6E73;
+  --content-tertiary: #AEAEB2;
+  --accent: #0969DA;
+  --accent-hover: #0757BA;
+  --accent-subtle: rgba(9, 105, 218, 0.08);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.30);
 }
 
 .dark {
-  --surface: #18171A;
-  --surface-secondary: #2F2D33;
-  --surface-hover: #3A3840;
-  --border: #3A3840;
-  --content: #FFFFFF;
-  --content-secondary: #B8D7F5;
-  --content-tertiary: #6B6577;
-  --accent: #4D9DE0;
-  --accent-hover: #6BB3F0;
-  --accent-subtle: rgba(77, 157, 224, 0.15);
-  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+  --surface: #1C1C1E;
+  --surface-secondary: #2C2C2E;
+  --surface-hover: #3A3A3C;
+  --border: #38383A;
+  --content: #F5F5F7;
+  --content-secondary: #A1A1A6;
+  --content-tertiary: #636366;
+  --accent: #2997FF;
+  --accent-hover: #40A9FF;
+  --accent-subtle: rgba(41, 151, 255, 0.12);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 }
 
 body {
