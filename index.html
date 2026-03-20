@@ -7,6 +7,286 @@
   </head>
   <body>
     <div id="app"></div>
+    <script>
+      // Browser preview mock — only when not running inside Tauri
+      if (!window.__TAURI_INTERNALS__) {
+        const ago = (hours) => new Date(Date.now() - hours * 3600000).toISOString();
+
+        const mockPRs = [
+          {
+            id: "PR_1",
+            number: 23177,
+            title: "fix(site): prevent auto-scroll from fighting user input",
+            url: "https://github.com/coder/coder/pull/23177",
+            state: "open",
+            repository: "coder",
+            owner: "coder",
+            head_ref: "fix-scroll",
+            base_ref: "main",
+            check_status: "failure",
+            is_draft: false,
+            labels: [],
+            merge_queue_info: null,
+            created_at: ago(48),
+            updated_at: ago(2),
+            review_decision: "APPROVED",
+            additions: 291,
+            deletions: 21,
+            comment_count: 3,
+            author_login: "mtojek",
+            author_avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
+            is_review_requested: false,
+          },
+          {
+            id: "PR_2",
+            number: 22966,
+            title: "fix(cli): verify builtin postgres reuse",
+            url: "https://github.com/coder/coder/pull/22966",
+            state: "open",
+            repository: "coder",
+            owner: "coder",
+            head_ref: "fix-pg",
+            base_ref: "main",
+            check_status: "success",
+            is_draft: false,
+            labels: [],
+            merge_queue_info: null,
+            created_at: ago(192),
+            updated_at: ago(1),
+            review_decision: "APPROVED",
+            additions: 380,
+            deletions: 12,
+            comment_count: 7,
+            author_login: "johnstcn",
+            author_avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
+            is_review_requested: false,
+          },
+          {
+            id: "PR_3",
+            number: 23362,
+            title: "perf: optimize agents memory and rendering pipeline",
+            url: "https://github.com/coder/coder/pull/23362",
+            state: "open",
+            repository: "coder",
+            owner: "coder",
+            head_ref: "perf-agents",
+            base_ref: "main",
+            check_status: "pending",
+            is_draft: false,
+            labels: [],
+            merge_queue_info: null,
+            created_at: ago(3),
+            updated_at: ago(1),
+            review_decision: null,
+            additions: 1872,
+            deletions: 405,
+            comment_count: 5,
+            author_login: "BrunoQuaworker",
+            author_avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
+            is_review_requested: false,
+          },
+          {
+            id: "PR_4",
+            number: 36,
+            title: "chore: refresh mux viewer references",
+            url: "https://github.com/coder/mux-md/pull/36",
+            state: "open",
+            repository: "mux-md",
+            owner: "coder",
+            head_ref: "refresh-refs",
+            base_ref: "main",
+            check_status: "pending",
+            is_draft: false,
+            labels: [],
+            merge_queue_info: null,
+            created_at: ago(120),
+            updated_at: ago(4),
+            review_decision: null,
+            additions: 1570,
+            deletions: 62,
+            comment_count: 12,
+            author_login: "f0ssel",
+            author_avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
+            is_review_requested: false,
+          },
+          {
+            id: "PR_5",
+            number: 4,
+            title: "fix(providers/openai): skip ephemeral replay iteration bug",
+            url: "https://github.com/ibetitsmike/fantasy/pull/4",
+            state: "open",
+            repository: "fantasy",
+            owner: "ibetitsmike",
+            head_ref: "fix-replay",
+            base_ref: "main",
+            check_status: "success",
+            is_draft: false,
+            labels: [],
+            merge_queue_info: null,
+            created_at: ago(2),
+            updated_at: ago(1),
+            review_decision: null,
+            additions: 45,
+            deletions: 58,
+            comment_count: 0,
+            author_login: "ibetitsmike",
+            author_avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
+            is_review_requested: false,
+          },
+          {
+            id: "PR_6",
+            number: 101,
+            title: "feat: add workspace proxying support for remote IDEs",
+            url: "https://github.com/coder/coder/pull/101",
+            state: "open",
+            repository: "coder",
+            owner: "coder",
+            head_ref: "feat-proxy",
+            base_ref: "main",
+            check_status: "success",
+            is_draft: true,
+            labels: [],
+            merge_queue_info: null,
+            created_at: ago(72),
+            updated_at: ago(12),
+            review_decision: null,
+            additions: 2340,
+            deletions: 189,
+            comment_count: 4,
+            author_login: "ibetitsmike",
+            author_avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
+            is_review_requested: false,
+          },
+          {
+            id: "PR_7",
+            number: 23100,
+            title: "feat: add notification preferences to settings panel",
+            url: "https://github.com/coder/coder/pull/23100",
+            state: "merged",
+            repository: "coder",
+            owner: "coder",
+            head_ref: "feat-notif",
+            base_ref: "main",
+            check_status: "success",
+            is_draft: false,
+            labels: [],
+            merge_queue_info: null,
+            created_at: ago(168),
+            updated_at: ago(6),
+            review_decision: "APPROVED",
+            additions: 156,
+            deletions: 23,
+            comment_count: 2,
+            author_login: "ibetitsmike",
+            author_avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
+            is_review_requested: false,
+          },
+        ];
+
+        const mockUser = {
+          login: "octocat",
+          avatar_url: "https://avatars.githubusercontent.com/u/583231?v=4",
+          name: "The Octocat",
+        };
+
+        let mockSettings = {
+          notify_checks_failed: true,
+          notify_checks_passed: true,
+          notify_merged: true,
+          notify_removed_from_queue: true,
+          hidden_repos: [],
+        };
+
+        const callbackRegistry = new Map();
+        const eventRegistry = new Map();
+        let nextCallbackId = 1;
+        let nextEventId = 1;
+
+        const emitEvent = (event, payload) => {
+          const listeners = eventRegistry.get(event);
+          if (!listeners) return;
+          for (const callback of listeners.values()) {
+            callback({ event, id: nextEventId++, payload });
+          }
+        };
+
+        window.__TAURI_INTERNALS__ = {
+          metadata: {
+            currentWindow: { label: "main" },
+            currentWebview: { label: "main" },
+          },
+          transformCallback(callback, once = false) {
+            const callbackId = nextCallbackId++;
+            const wrapped = (payload) => {
+              if (once) {
+                callbackRegistry.delete(callbackId);
+                delete window[`_${callbackId}`];
+              }
+              return callback(payload);
+            };
+
+            callbackRegistry.set(callbackId, wrapped);
+            window[`_${callbackId}`] = wrapped;
+            return callbackId;
+          },
+          invoke(cmd, args = {}) {
+            switch (cmd) {
+              case "is_authenticated_cmd":
+                return Promise.resolve(true);
+              case "get_pull_requests_cmd":
+              case "refresh_prs_cmd":
+                return Promise.resolve(mockPRs);
+              case "get_user_info_cmd":
+                return Promise.resolve(mockUser);
+              case "get_settings_cmd":
+                return Promise.resolve(mockSettings);
+              case "save_settings_cmd":
+                if (args.settings) {
+                  mockSettings = { ...args.settings };
+                }
+                return Promise.resolve(null);
+              case "logout_cmd":
+                emitEvent("auth-cleared");
+                return Promise.resolve(null);
+              case "plugin:event|listen": {
+                const eventName = args.event;
+                const callback = callbackRegistry.get(args.handler);
+                const eventId = nextEventId++;
+                if (eventName && callback) {
+                  const listeners = eventRegistry.get(eventName) ?? new Map();
+                  listeners.set(eventId, callback);
+                  eventRegistry.set(eventName, listeners);
+                }
+                return Promise.resolve(eventId);
+              }
+              case "plugin:event|unlisten": {
+                const listeners = eventRegistry.get(args.event);
+                if (listeners) {
+                  listeners.delete(args.eventId);
+                  if (listeners.size === 0) {
+                    eventRegistry.delete(args.event);
+                  }
+                }
+                return Promise.resolve(null);
+              }
+              case "plugin:window|minimize":
+              case "plugin:window|hide":
+              case "plugin:window|close":
+              case "plugin:window|set_focus":
+                return Promise.resolve(null);
+              default:
+                return Promise.resolve(null);
+            }
+          },
+          __mockEmit: emitEvent,
+          __mockEvents: eventRegistry,
+        };
+
+        window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+          unregisterListener: function() {},
+        };
+      }
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

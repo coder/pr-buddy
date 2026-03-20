@@ -5,21 +5,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        coder: {
-          white: "#FFFFFF",
-          black: "#090B0B",
-          ember: "#FF8067",
-          sunset: "#A13000",
-          glacier: "#B8D7F5",
-          sky: "#A4E8F2",
-          twilight: "#4A408F",
-          marine: "#1D4D7D",
-          jade: "#005C6A",
-          shell: "#F8F2F1",
-          linen: "#FBF8F8",
-          cinder: "#18171A",
-          smoke: "#2F2D33",
-        },
         surface: {
           DEFAULT: "var(--surface)",
           secondary: "var(--surface-secondary)",
@@ -38,7 +23,17 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Geist Variable"', "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"Segoe UI"',
+          "Roboto",
+          '"Helvetica Neue"',
+          "Arial",
+          "sans-serif",
+          '"Apple Color Emoji"',
+          '"Segoe UI Emoji"',
+        ],
       },
     },
   },

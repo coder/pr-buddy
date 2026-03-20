@@ -280,10 +280,13 @@ describe("UpdateDialog", () => {
 
 
 describe("TitleBar", () => {
-  it("renders PR Buddy title and window controls", async () => {
+  it("renders drag region with close button", async () => {
     const { default: TitleBar } = await import("./TitleBar.svelte");
-    render(TitleBar);
-    expect(screen.getByText("PR Buddy")).toBeTruthy();
+    const { container } = render(TitleBar);
+    const dragRegion = container.querySelector("[data-tauri-drag-region]");
+
+    expect(dragRegion).toBeTruthy();
+    expect(container.querySelector("button")).toBeTruthy();
   });
 });
 
