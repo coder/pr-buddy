@@ -1,7 +1,5 @@
 <script lang="ts">
   import ArrowLeft from "@lucide/svelte/icons/arrow-left";
-  import Bell from "@lucide/svelte/icons/bell";
-  import GitBranch from "@lucide/svelte/icons/git-branch";
   import Moon from "@lucide/svelte/icons/moon";
   import Monitor from "@lucide/svelte/icons/monitor";
   import Sun from "@lucide/svelte/icons/sun";
@@ -159,10 +157,10 @@
 </script>
 
 <!-- Header -->
-<div class="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
+<div class="flex items-center gap-2 bg-transparent px-3 py-2 shrink-0">
   <button
     onclick={onBack}
-    class="text-content-secondary hover:text-content transition-colors p-1 rounded hover:bg-surface-hover"
+    class="rounded-lg p-1 text-content-secondary transition-colors hover:bg-surface-hover hover:text-content"
     title="Back"
   >
     <ArrowLeft size={16} />
@@ -171,75 +169,79 @@
 </div>
 
 <!-- Body -->
-<div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin px-4 py-3 space-y-4">
+<div class="flex-1 overflow-y-auto min-h-0 scrollbar-thin px-3 py-2 space-y-4">
   {#if !loaded}
     <div class="flex items-center justify-center py-8">
-      <div class="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+      <div class="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent"></div>
     </div>
   {:else}
     <!-- General -->
     <section>
-      <h2 class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-content-tertiary">General</h2>
-      <button
-        onclick={toggleLaunchAtLogin}
-        disabled={!autoStartLoaded}
-        class="flex items-center justify-between w-full px-3 py-2 rounded-lg
-               hover:bg-surface-hover transition-colors text-left
-               {autoStartLoaded ? '' : 'opacity-50 cursor-not-allowed'}"
-      >
-        <span class="text-sm text-content">Launch at Login</span>
-        <div
-          class="relative h-[20px] w-[34px] rounded-full transition-all duration-200
-                 {launchAtLoginEnabled ? 'bg-accent' : 'bg-neutral-300 dark:bg-neutral-600'}"
+      <h2 class="px-1 pb-1 text-[11px] font-medium text-content-secondary">General</h2>
+      <div class="overflow-hidden rounded-xl bg-surface-secondary">
+        <button
+          onclick={toggleLaunchAtLogin}
+          disabled={!autoStartLoaded}
+          class="flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-surface-hover
+                 {autoStartLoaded ? '' : 'cursor-not-allowed opacity-50'}"
         >
+          <span class="text-sm text-content">Launch at Login</span>
           <div
-            class="absolute top-[2px] h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200
-                   {launchAtLoginEnabled ? 'translate-x-[16px]' : 'translate-x-[2px]'}"
-          ></div>
-        </div>
-      </button>
+            class="relative h-[20px] w-[34px] rounded-full transition-all duration-200
+                   {launchAtLoginEnabled ? 'bg-accent' : 'bg-[#E9E9EB] dark:bg-[#39393D]'}"
+          >
+            <div
+              class="absolute top-[2px] h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200
+                     {launchAtLoginEnabled ? 'translate-x-[16px]' : 'translate-x-[2px]'}"
+            ></div>
+          </div>
+        </button>
+      </div>
     </section>
 
     <!-- Theme -->
     <section>
-      <h2 class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-content-tertiary">Theme</h2>
-      <div class="flex rounded-lg bg-surface-secondary p-0.5 gap-0.5">
-        {#each [
-          { value: "system", label: "System", Icon: Monitor },
-          { value: "light", label: "Light", Icon: Sun },
-          { value: "dark", label: "Dark", Icon: Moon },
-        ] as opt (opt.value)}
-          <button
-            onclick={() => selectTheme(opt.value as ThemePreference)}
-            class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors
-                   {currentTheme === opt.value
-                     ? 'bg-surface text-content shadow-sm'
-                     : 'bg-transparent text-content-secondary hover:text-content'}"
-          >
-            <opt.Icon size={13} />
-            {opt.label}
-          </button>
-        {/each}
+      <h2 class="px-1 pb-1 text-[11px] font-medium text-content-secondary">Theme</h2>
+      <div class="overflow-hidden rounded-xl bg-surface-secondary">
+        <div class="px-3 py-2.5">
+          <div class="flex gap-0.5 rounded-lg bg-surface p-0.5">
+            {#each [
+              { value: "system", label: "System", Icon: Monitor },
+              { value: "light", label: "Light", Icon: Sun },
+              { value: "dark", label: "Dark", Icon: Moon },
+            ] as opt (opt.value)}
+              <button
+                onclick={() => selectTheme(opt.value as ThemePreference)}
+                class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors
+                       {currentTheme === opt.value
+                         ? 'bg-surface-secondary text-content shadow-sm'
+                         : 'text-content-secondary hover:text-content'}"
+              >
+                <opt.Icon size={13} />
+                {opt.label}
+              </button>
+            {/each}
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- Notifications -->
     <section>
-      <div class="mb-2 flex items-center gap-1.5">
-        <Bell size={13} class="text-content-tertiary" />
-        <h2 class="text-[10px] font-semibold uppercase tracking-widest text-content-tertiary">Notifications</h2>
-      </div>
-      <div class="space-y-1">
-        {#each notificationItems as item (item.key)}
+      <h2 class="px-1 pb-1 text-[11px] font-medium text-content-secondary">Notifications</h2>
+      <div class="overflow-hidden rounded-xl bg-surface-secondary">
+        {#each notificationItems as item, index (item.key)}
+          {#if index > 0}
+            <div class="mx-3 border-t border-border/30"></div>
+          {/if}
           <button
             onclick={() => toggleNotification(item.key)}
-            class="flex items-center justify-between w-full px-3 py-2 rounded-lg
-                   hover:bg-surface-hover transition-colors text-left"
+            class="flex w-full items-center justify-between px-3 py-2.5 text-left transition-colors hover:bg-surface-hover"
           >
             <span class="text-sm text-content">{item.label}</span>
             <div
               class="relative h-[20px] w-[34px] rounded-full transition-all duration-200
-                     {(settings as any)[item.key] ? 'bg-accent' : 'bg-neutral-300 dark:bg-neutral-600'}"
+                     {(settings as any)[item.key] ? 'bg-accent' : 'bg-[#E9E9EB] dark:bg-[#39393D]'}"
             >
               <div
                 class="absolute top-[2px] h-4 w-4 rounded-full bg-white shadow-sm transition-all duration-200
@@ -253,47 +255,46 @@
 
     <!-- Repositories -->
     <section>
-      <div class="mb-2 flex items-center justify-between">
-        <div class="flex items-center gap-1.5">
-          <GitBranch size={13} class="text-content-tertiary" />
-          <h2 class="text-[10px] font-semibold uppercase tracking-widest text-content-tertiary">Repositories</h2>
-        </div>
+      <div class="flex items-center justify-between gap-2 px-1 pb-1">
+        <h2 class="text-[11px] font-medium text-content-secondary">Repositories</h2>
         {#if allRepos.length > 0}
           <button
             onclick={() => allHidden ? showAll() : hideAll()}
-            class="text-[10px] text-accent hover:text-accent-hover transition-colors"
+            class="text-[11px] font-medium text-accent transition-colors hover:text-accent-hover"
           >
             {allHidden ? "Show all" : "Hide all"}
           </button>
         {/if}
       </div>
-      {#if allRepos.length === 0}
-        <p class="text-xs text-content-tertiary px-3 py-2">No repositories yet</p>
-      {:else}
-        <div class="space-y-0.5">
-          {#each allRepos as repo (repo)}
+      <div class="overflow-hidden rounded-xl bg-surface-secondary">
+        {#if allRepos.length === 0}
+          <p class="px-3 py-2 text-sm text-content-secondary">No repositories yet</p>
+        {:else}
+          {#each allRepos as repo, index (repo)}
+            {#if index > 0}
+              <div class="mx-3 border-t border-border/30"></div>
+            {/if}
             <button
               onclick={() => toggleRepo(repo)}
-              class="flex items-center gap-2.5 w-full px-3 py-1.5 rounded-lg
-                     hover:bg-surface-hover transition-colors text-left"
+              class="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-surface-hover"
             >
               <div
-                class="w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0
+                class="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border
                        {settings.hidden_repos.includes(repo)
                          ? 'border-content-tertiary bg-transparent'
                          : 'border-accent bg-accent'}"
               >
                 {#if !settings.hidden_repos.includes(repo)}
-                  <svg class="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none">
+                  <svg class="h-2.5 w-2.5 text-white" viewBox="0 0 12 12" fill="none">
                     <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 {/if}
               </div>
-              <span class="text-sm text-content truncate">{repo}</span>
+              <span class="truncate text-sm text-content">{repo}</span>
             </button>
           {/each}
-        </div>
-      {/if}
+        {/if}
+      </div>
     </section>
   {/if}
 </div>

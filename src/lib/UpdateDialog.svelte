@@ -70,57 +70,78 @@
   });
 </script>
 
-<div class="flex flex-col items-center justify-center flex-1 min-h-0 bg-surface text-content p-6 select-none">
-  {#if viewState === "checking"}
-    <div class="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
-    <p class="text-sm text-content-secondary">Checking for updates...</p>
+<div class="flex min-h-0 flex-1 select-none items-center justify-center bg-surface p-6 text-content">
+  <div class="w-full max-w-sm">
+    {#if viewState === "checking"}
+      <div class="rounded-xl bg-surface-secondary p-5 text-center">
+        <div class="mb-4 inline-flex h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent"></div>
+        <p class="mb-1 text-lg font-medium">Checking for updates</p>
+        <p class="text-sm text-content-secondary">Looking for the latest PR Buddy release…</p>
+      </div>
 
-  {:else if viewState === "up_to_date"}
-    <CheckCircle size={32} class="text-emerald-500 mb-3" />
-    <p class="text-lg font-medium mb-1">You're up to date</p>
-    <p class="text-sm text-content-secondary mb-3">Version {currentVersion}</p>
-    <button
-      onclick={() => getCurrentWindow().close()}
-      class="px-4 py-2 bg-surface-secondary hover:bg-surface-hover rounded-md text-sm font-medium transition-colors"
-    >
-      Close
-    </button>
+    {:else if viewState === "up_to_date"}
+      <div class="rounded-xl bg-surface-secondary p-5 text-center">
+        <CheckCircle size={32} class="mx-auto mb-3 text-emerald-500" />
+        <p class="mb-1 text-lg font-medium">You're up to date</p>
+        <p class="text-sm text-content-secondary">Version {currentVersion}</p>
+      </div>
+      <div class="mt-3 overflow-hidden rounded-xl bg-surface-secondary">
+        <button
+          onclick={() => getCurrentWindow().close()}
+          class="w-full px-3 py-2.5 text-center text-sm font-medium text-content-secondary transition-colors hover:bg-surface-hover"
+        >
+          Close
+        </button>
+      </div>
 
-  {:else if viewState === "available"}
-    <Download size={32} class="text-accent mb-3" />
-    <p class="text-lg font-medium mb-1">Update available</p>
-    <p class="text-sm text-content-secondary mb-3">Version {newVersion}</p>
-    {#if releaseNotes}
-      <div class="mb-4 max-h-24 w-full overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface-secondary p-2 text-[11px] text-content-tertiary">
-        {releaseNotes}
+    {:else if viewState === "available"}
+      <div class="rounded-xl bg-surface-secondary p-5 text-center">
+        <Download size={32} class="mx-auto mb-3 text-accent" />
+        <p class="mb-1 text-lg font-medium">Update available</p>
+        <p class="mb-3 text-sm text-content-secondary">Version {newVersion}</p>
+        {#if releaseNotes}
+          <div class="max-h-24 w-full overflow-y-auto whitespace-pre-wrap rounded-lg bg-surface p-2 text-[11px] text-content-tertiary">
+            {releaseNotes}
+          </div>
+        {/if}
+      </div>
+      <div class="mt-3 overflow-hidden rounded-xl bg-surface-secondary">
+        <button
+          onclick={installUpdate}
+          class="w-full px-3 py-2.5 text-center text-sm font-medium text-accent transition-colors hover:bg-surface-hover"
+        >
+          Install &amp; Restart
+        </button>
+      </div>
+
+    {:else if viewState === "downloading"}
+      <div class="rounded-xl bg-surface-secondary p-5 text-center">
+        <Download size={32} class="mx-auto mb-3 text-accent" />
+        <p class="mb-1 text-lg font-medium">Downloading update</p>
+        <p class="mb-4 text-sm text-content-secondary">Please keep PR Buddy open while the update downloads.</p>
+        <div class="mb-2 w-full rounded-full bg-surface h-1.5">
+          <div
+            class="h-1.5 rounded-full bg-accent transition-all duration-200"
+            style="width: {downloadProgress}%"
+          ></div>
+        </div>
+        <p class="text-xs text-content-tertiary">{Math.round(downloadProgress)}%</p>
+      </div>
+
+    {:else if viewState === "error"}
+      <div class="rounded-xl bg-surface-secondary p-5 text-center">
+        <AlertCircle size={32} class="mx-auto mb-3 text-red-400" />
+        <p class="mb-1 text-lg font-medium">Update failed</p>
+        <p class="text-sm text-content-secondary">{errorMessage}</p>
+      </div>
+      <div class="mt-3 overflow-hidden rounded-xl bg-surface-secondary">
+        <button
+          onclick={checkForUpdate}
+          class="w-full px-3 py-2.5 text-center text-sm font-medium text-content-secondary transition-colors hover:bg-surface-hover"
+        >
+          Retry
+        </button>
       </div>
     {/if}
-    <button
-      onclick={installUpdate}
-      class="px-4 py-2 bg-accent hover:bg-accent-hover rounded-md text-sm font-medium transition-colors"
-    >
-      Install &amp; Restart
-    </button>
-
-  {:else if viewState === "downloading"}
-    <p class="text-sm text-content-secondary mb-3">Downloading update...</p>
-    <div class="w-full bg-surface-secondary rounded-full h-2 mb-2">
-      <div
-        class="bg-accent h-2 rounded-full transition-all duration-200"
-        style="width: {downloadProgress}%"
-      ></div>
-    </div>
-    <p class="text-xs text-content-tertiary">{Math.round(downloadProgress)}%</p>
-
-  {:else if viewState === "error"}
-    <AlertCircle size={32} class="text-red-400 mb-3" />
-    <p class="text-lg font-medium mb-1">Update failed</p>
-    <p class="text-sm text-content-secondary mb-3 text-center max-w-xs">{errorMessage}</p>
-    <button
-      onclick={checkForUpdate}
-      class="px-4 py-2 bg-surface-secondary hover:bg-surface-hover rounded-md text-sm font-medium transition-colors"
-    >
-      Retry
-    </button>
-  {/if}
+  </div>
 </div>
