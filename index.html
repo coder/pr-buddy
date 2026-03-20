@@ -281,6 +281,10 @@
           __mockEmit: emitEvent,
           __mockEvents: eventRegistry,
         };
+
+        window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+          unregisterListener: function() {},
+        };
       }
     </script>
     <script type="module" src="/src/main.ts"></script>
