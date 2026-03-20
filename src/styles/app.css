@@ -8,31 +8,31 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* Light theme (default) */
-  --surface: #FFFFFF;
-  --surface-secondary: #F5F5F5;
-  --surface-hover: #EBEBEB;
-  --border: #D5D5D5;
+  --surface: #F2F2F7;
+  --surface-secondary: #FFFFFF;
+  --surface-hover: #E8E8ED;
+  --border: #C6C6C8;
   --content: #1D1D1F;
-  --content-secondary: #6E6E73;
+  --content-secondary: #8E8E93;
   --content-tertiary: #AEAEB2;
-  --accent: #0969DA;
-  --accent-hover: #0757BA;
-  --accent-subtle: rgba(9, 105, 218, 0.08);
+  --accent: #007AFF;
+  --accent-hover: #0068D6;
+  --accent-subtle: rgba(0, 122, 255, 0.08);
   --scrollbar-thumb: rgba(0, 0, 0, 0.18);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.30);
 }
 
 .dark {
-  --surface: #1C1C1E;
-  --surface-secondary: #2C2C2E;
-  --surface-hover: #3A3A3C;
+  --surface: #000000;
+  --surface-secondary: #1C1C1E;
+  --surface-hover: #2C2C2E;
   --border: #38383A;
   --content: #F5F5F7;
-  --content-secondary: #A1A1A6;
+  --content-secondary: #8E8E93;
   --content-tertiary: #636366;
-  --accent: #2997FF;
-  --accent-hover: #40A9FF;
-  --accent-subtle: rgba(41, 151, 255, 0.12);
+  --accent: #0A84FF;
+  --accent-hover: #409CFF;
+  --accent-subtle: rgba(10, 132, 255, 0.12);
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 }
@@ -43,6 +43,11 @@ body {
   user-select: none;
   -webkit-user-select: none;
   background-color: var(--surface);
+}
+
+#app {
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 /* Custom scrollbar */

@@ -29,21 +29,19 @@
 
 <button
   onclick={openPr}
-  class="w-full flex items-center gap-2.5 px-4 py-1.5 hover:bg-surface-hover transition-colors
-         text-left group cursor-pointer"
+  class="group flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-surface-hover"
 >
-  <!-- Author avatar -->
   {#if pr.author_avatar_url}
-    <img src={pr.author_avatar_url} alt={pr.author_login} class="w-6 h-6 rounded-full shrink-0" />
+    <img src={pr.author_avatar_url} alt={pr.author_login} class="h-5 w-5 shrink-0 rounded-full" />
   {/if}
 
   <StatusBadge {pr} />
 
-  <div class="flex-1 min-w-0">
-    <p class="text-[12px] text-content truncate leading-tight group-hover:text-accent-blue">
+  <div class="min-w-0 flex-1">
+    <p class="truncate text-[12px] leading-tight text-content group-hover:text-accent">
       {pr.title}
     </p>
-    <div class="flex items-center gap-1.5 mt-0.5 text-[10px]">
+    <div class="mt-0.5 flex items-center gap-1.5 text-[10px]">
       <span class="text-content-tertiary">{repoDisplay}</span>
       <span class="text-content-tertiary">·</span>
       <span class="text-content-tertiary">#{pr.number}</span>
@@ -55,8 +53,7 @@
     </div>
   </div>
 
-  <!-- Right-aligned metadata: comment count + age -->
-  <div class="shrink-0 flex items-center gap-1.5 text-content-tertiary">
+  <div class="flex shrink-0 items-center gap-1.5 text-content-tertiary">
     {#if pr.comment_count > 0}
       <span class="flex items-center gap-0.5 text-[10px]">
         <MessageSquare size={10} />
