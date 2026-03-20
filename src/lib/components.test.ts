@@ -280,10 +280,13 @@ describe("UpdateDialog", () => {
 
 
 describe("TitleBar", () => {
-  it("renders PR Buddy title and window controls", async () => {
+  it("renders the invisible drag strip", async () => {
     const { default: TitleBar } = await import("./TitleBar.svelte");
-    render(TitleBar);
-    expect(screen.getByText("PR Buddy")).toBeTruthy();
+    const { container } = render(TitleBar);
+    const dragStrip = container.querySelector("[data-tauri-drag-region]");
+
+    expect(dragStrip).toBeTruthy();
+    expect(dragStrip?.className).toContain("bg-transparent");
   });
 });
 
