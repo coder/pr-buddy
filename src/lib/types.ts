@@ -36,6 +36,7 @@ export interface PullRequest {
   author_login: string;
   author_avatar_url: string;
   is_review_requested: boolean;
+  merge_state_status: string | null;
 }
 
 export interface GitHubUser {

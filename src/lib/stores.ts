@@ -18,6 +18,11 @@ export const authenticated = writable(false);
 export const loading = writable(true);
 export const lastUpdated = writable<Date | null>(null);
 
+/** Returns true when GitHub considers the PR actually mergeable (clean or has merge hooks). */
+function isActuallyMergeable(pr: PullRequest): boolean {
+  return pr.merge_state_status === "CLEAN" || pr.merge_state_status === "HAS_HOOKS";
+}
+
 export function groupPrs(allPrs: PullRequest[]): PrSection[] {
   const reviewRequested = allPrs.filter(pr => pr.is_review_requested);
   const myPrs = allPrs.filter(pr => !pr.is_review_requested);
@@ -60,10 +65,9 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       icon: CircleDot,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
-        pr.check_status === "success" &&
-        pr.review_decision !== "CHANGES_REQUESTED" &&
-        pr.review_decision !== "APPROVED" &&
-        (pr.review_decision === "REVIEW_REQUIRED" || pr.review_decision == null)
+        isActuallyMergeable(pr) &&
+        pr.check_status !== "failure" && pr.check_status !== "error" &&
+        pr.review_decision !== "CHANGES_REQUESTED"
       ),
     },
     {
@@ -81,10 +85,11 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       icon: Eye,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
-        pr.check_status === "none" &&
+        !isActuallyMergeable(pr) &&
+        pr.check_status !== "failure" && pr.check_status !== "error" &&
+        pr.check_status !== "pending" &&
         pr.review_decision !== "CHANGES_REQUESTED" &&
-        pr.review_decision !== "APPROVED" &&
-        (pr.review_decision === "REVIEW_REQUIRED" || pr.review_decision == null)
+        pr.review_decision !== "APPROVED"
       ),
     },
     {
@@ -92,6 +97,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       icon: CheckCircle,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
+        !isActuallyMergeable(pr) &&
         pr.check_status !== "failure" && pr.check_status !== "error" &&
         pr.review_decision === "APPROVED"
       ),

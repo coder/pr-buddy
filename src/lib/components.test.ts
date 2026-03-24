@@ -36,6 +36,7 @@ const mockPr: PullRequest = {
   author_login: "testuser",
   author_avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
   is_review_requested: false,
+  merge_state_status: null,
 };
 
 const mockUser: GitHubUser = {
@@ -96,6 +97,50 @@ describe("groupPrs", () => {
     const sections = groupPrs([myPr, reviewPr]);
     expect(sections.find(s => s.title === "Needs Your Review")?.prs).toHaveLength(1);
     expect(sections.find(s => s.title === "Approved")?.prs).toHaveLength(1);
+  });
+
+  it("does NOT put review-blocked PR with passing checks in Mergeable (bug fix)", () => {
+    const pr = { ...mockPr, review_decision: "REVIEW_REQUIRED", merge_state_status: "BLOCKED", check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    expect(sections.find(s => s.title === "Mergeable")).toBeUndefined();
+    const waiting = sections.find(s => s.title === "Waiting for Review");
+    expect(waiting).toBeDefined();
+    expect(waiting!.prs).toHaveLength(1);
+  });
+
+  it("puts a clean PR in Mergeable", () => {
+    const pr = { ...mockPr, review_decision: null, merge_state_status: "CLEAN", check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    const mergeable = sections.find(s => s.title === "Mergeable");
+    expect(mergeable).toBeDefined();
+    expect(mergeable!.prs).toHaveLength(1);
+  });
+
+  it("puts a HAS_HOOKS PR in Mergeable", () => {
+    const pr = { ...mockPr, review_decision: null, merge_state_status: "HAS_HOOKS", check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    expect(sections.find(s => s.title === "Mergeable")!.prs).toHaveLength(1);
+  });
+
+  it("promotes approved + clean PR to Mergeable (not Approved)", () => {
+    const pr = { ...mockPr, review_decision: "APPROVED", merge_state_status: "CLEAN", check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    expect(sections.find(s => s.title === "Mergeable")!.prs).toHaveLength(1);
+    expect(sections.find(s => s.title === "Approved")).toBeUndefined();
+  });
+
+  it("keeps approved + blocked PR in Approved", () => {
+    const pr = { ...mockPr, review_decision: "APPROVED", merge_state_status: "BLOCKED", check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    expect(sections.find(s => s.title === "Approved")!.prs).toHaveLength(1);
+    expect(sections.find(s => s.title === "Mergeable")).toBeUndefined();
+  });
+
+  it("treats unknown merge state as not mergeable", () => {
+    const pr = { ...mockPr, review_decision: null, merge_state_status: null, check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    expect(sections.find(s => s.title === "Mergeable")).toBeUndefined();
+    expect(sections.find(s => s.title === "Waiting for Review")!.prs).toHaveLength(1);
   });
 });
 
