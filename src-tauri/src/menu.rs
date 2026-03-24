@@ -10,7 +10,7 @@ struct PrSection {
     default_collapsed: bool,
 }
 
-/// Returns true when GitHub considers the PR actually mergeable (clean or has hooks).
+/// Returns true when GitHub's merge-state check is satisfied (CLEAN or HAS_HOOKS).
 fn is_actually_mergeable(pr: &PullRequest) -> bool {
     matches!(
         pr.merge_state_status.as_deref(),
@@ -95,8 +95,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 .filter(|pr| {
                     pr.merge_queue_info.is_none()
                         && is_actually_mergeable(pr)
-                        && pr.check_status != CheckStatus::Failure
-                        && pr.check_status != CheckStatus::Error
+                        && pr.check_status == CheckStatus::Success
                         && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
                 })
                 .cloned()
@@ -385,6 +384,20 @@ mod tests {
         sections.iter().find(|s| s.title == title)
     }
 
+    /// Assert a PR appears in exactly one section with the given title and no others
+    /// (ignoring empty sections from group_prs output).
+    fn assert_only_in_section(sections: &[PrSection], expected_title: &str) {
+        let non_empty: Vec<_> = sections.iter().filter(|s| !s.prs.is_empty()).collect();
+        assert_eq!(
+            non_empty.len(),
+            1,
+            "Expected PR in exactly one section, but found {} non-empty sections: {:?}",
+            non_empty.len(),
+            non_empty.iter().map(|s| &s.title).collect::<Vec<_>>()
+        );
+        assert_eq!(non_empty[0].title, expected_title);
+    }
+
     #[test]
     fn blocked_review_required_not_in_mergeable() {
         let pr = PullRequest {
@@ -394,14 +407,7 @@ mod tests {
             ..make_pr()
         };
         let sections = group_prs(&[pr]);
-        assert!(
-            find_section(&sections, "Mergeable").is_none()
-                || find_section(&sections, "Mergeable").unwrap().prs.is_empty(),
-            "BLOCKED PR should not appear in Mergeable"
-        );
-        let waiting = find_section(&sections, "Waiting for Review")
-            .expect("should be in Waiting for Review");
-        assert_eq!(waiting.prs.len(), 1);
+        assert_only_in_section(&sections, "Waiting for Review");
     }
 
     #[test]
@@ -415,6 +421,7 @@ mod tests {
         let sections = group_prs(&[pr]);
         let mergeable = find_section(&sections, "Mergeable").expect("should be in Mergeable");
         assert_eq!(mergeable.prs.len(), 1);
+        assert_only_in_section(&sections, "Mergeable");
     }
 
     #[test]
@@ -428,6 +435,7 @@ mod tests {
         let sections = group_prs(&[pr]);
         let mergeable = find_section(&sections, "Mergeable").expect("should be in Mergeable");
         assert_eq!(mergeable.prs.len(), 1);
+        assert_only_in_section(&sections, "Mergeable");
     }
 
     #[test]
@@ -439,12 +447,7 @@ mod tests {
             ..make_pr()
         };
         let sections = group_prs(&[pr]);
-        let mergeable = find_section(&sections, "Mergeable").expect("should be in Mergeable");
-        assert_eq!(mergeable.prs.len(), 1);
-        assert!(
-            find_section(&sections, "Approved").is_none()
-                || find_section(&sections, "Approved").unwrap().prs.is_empty()
-        );
+        assert_only_in_section(&sections, "Mergeable");
     }
 
     #[test]
@@ -456,12 +459,7 @@ mod tests {
             ..make_pr()
         };
         let sections = group_prs(&[pr]);
-        let approved = find_section(&sections, "Approved").expect("should be in Approved");
-        assert_eq!(approved.prs.len(), 1);
-        assert!(
-            find_section(&sections, "Mergeable").is_none()
-                || find_section(&sections, "Mergeable").unwrap().prs.is_empty()
-        );
+        assert_only_in_section(&sections, "Approved");
     }
 
     #[test]
@@ -473,13 +471,20 @@ mod tests {
             ..make_pr()
         };
         let sections = group_prs(&[pr]);
-        assert!(
-            find_section(&sections, "Mergeable").is_none()
-                || find_section(&sections, "Mergeable").unwrap().prs.is_empty(),
-            "Unknown merge state should not be Mergeable"
-        );
-        let waiting = find_section(&sections, "Waiting for Review")
-            .expect("should be in Waiting for Review");
-        assert_eq!(waiting.prs.len(), 1);
+        assert_only_in_section(&sections, "Waiting for Review");
+    }
+
+    #[test]
+    fn review_requested_pr_excluded_from_authored_sections() {
+        let pr = PullRequest {
+            is_review_requested: true,
+            merge_state_status: Some("CLEAN".into()),
+            check_status: CheckStatus::Success,
+            review_decision: None,
+            ..make_pr()
+        };
+        let sections = group_prs(&[pr]);
+        // Should only appear in "Needs Your Review" (review-requested bucket)
+        assert_only_in_section(&sections, "Needs Your Review");
     }
 }

@@ -170,7 +170,7 @@ fn parse_pr_node(node: &Value) -> Option<PullRequest> {
         merge_state_status: node
             .get("mergeStateStatus")
             .and_then(|v| v.as_str())
-            .map(|s| s.to_string()),
+            .map(str::to_owned),
     })
 }
 
