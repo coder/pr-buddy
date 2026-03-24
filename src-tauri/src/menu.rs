@@ -10,6 +10,14 @@ struct PrSection {
     default_collapsed: bool,
 }
 
+/// Returns true when GitHub considers the PR actually mergeable (clean or has hooks).
+fn is_actually_mergeable(pr: &PullRequest) -> bool {
+    matches!(
+        pr.merge_state_status.as_deref(),
+        Some("CLEAN") | Some("HAS_HOOKS")
+    )
+}
+
 /// Port of src/lib/stores.ts groupPrs() matching its section ordering.
 fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
     let review_requested: Vec<_> = all_prs
@@ -86,11 +94,10 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 .iter()
                 .filter(|pr| {
                     pr.merge_queue_info.is_none()
-                        && pr.check_status == CheckStatus::Success
+                        && is_actually_mergeable(pr)
+                        && pr.check_status != CheckStatus::Failure
+                        && pr.check_status != CheckStatus::Error
                         && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
-                        && pr.review_decision.as_deref() != Some("APPROVED")
-                        && (pr.review_decision.as_deref() == Some("REVIEW_REQUIRED")
-                            || pr.review_decision.is_none())
                 })
                 .cloned()
                 .collect(),
@@ -116,11 +123,12 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 .iter()
                 .filter(|pr| {
                     pr.merge_queue_info.is_none()
-                        && pr.check_status == CheckStatus::None
+                        && !is_actually_mergeable(pr)
+                        && pr.check_status != CheckStatus::Failure
+                        && pr.check_status != CheckStatus::Error
+                        && pr.check_status != CheckStatus::Pending
                         && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
                         && pr.review_decision.as_deref() != Some("APPROVED")
-                        && (pr.review_decision.as_deref() == Some("REVIEW_REQUIRED")
-                            || pr.review_decision.is_none())
                 })
                 .cloned()
                 .collect(),
@@ -132,6 +140,7 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 .iter()
                 .filter(|pr| {
                     pr.merge_queue_info.is_none()
+                        && !is_actually_mergeable(pr)
                         && pr.check_status != CheckStatus::Failure
                         && pr.check_status != CheckStatus::Error
                         && pr.review_decision.as_deref() == Some("APPROVED")
@@ -336,5 +345,141 @@ fn truncate(s: &str, max: usize) -> String {
         format!("{}…", trimmed)
     } else {
         truncated
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::*;
+
+    fn make_pr() -> PullRequest {
+        PullRequest {
+            id: "PR_1".into(),
+            number: 1,
+            title: "test".into(),
+            url: "https://github.com/test/repo/pull/1".into(),
+            state: PrState::Open,
+            repository: "repo".into(),
+            owner: "test".into(),
+            head_ref: "feature".into(),
+            base_ref: "main".into(),
+            check_status: CheckStatus::Success,
+            is_draft: false,
+            labels: vec![],
+            merge_queue_info: None,
+            created_at: "2025-01-01T00:00:00Z".into(),
+            updated_at: "2025-01-01T00:00:00Z".into(),
+            review_decision: None,
+            additions: 0,
+            deletions: 0,
+            comment_count: 0,
+            author_login: "user".into(),
+            author_avatar_url: "".into(),
+            is_review_requested: false,
+            merge_state_status: None,
+        }
+    }
+
+    fn find_section<'a>(sections: &'a [PrSection], title: &str) -> Option<&'a PrSection> {
+        sections.iter().find(|s| s.title == title)
+    }
+
+    #[test]
+    fn blocked_review_required_not_in_mergeable() {
+        let pr = PullRequest {
+            review_decision: Some("REVIEW_REQUIRED".into()),
+            merge_state_status: Some("BLOCKED".into()),
+            check_status: CheckStatus::Success,
+            ..make_pr()
+        };
+        let sections = group_prs(&[pr]);
+        assert!(
+            find_section(&sections, "Mergeable").is_none()
+                || find_section(&sections, "Mergeable").unwrap().prs.is_empty(),
+            "BLOCKED PR should not appear in Mergeable"
+        );
+        let waiting = find_section(&sections, "Waiting for Review")
+            .expect("should be in Waiting for Review");
+        assert_eq!(waiting.prs.len(), 1);
+    }
+
+    #[test]
+    fn clean_pr_is_mergeable() {
+        let pr = PullRequest {
+            review_decision: None,
+            merge_state_status: Some("CLEAN".into()),
+            check_status: CheckStatus::Success,
+            ..make_pr()
+        };
+        let sections = group_prs(&[pr]);
+        let mergeable = find_section(&sections, "Mergeable").expect("should be in Mergeable");
+        assert_eq!(mergeable.prs.len(), 1);
+    }
+
+    #[test]
+    fn has_hooks_pr_is_mergeable() {
+        let pr = PullRequest {
+            review_decision: None,
+            merge_state_status: Some("HAS_HOOKS".into()),
+            check_status: CheckStatus::Success,
+            ..make_pr()
+        };
+        let sections = group_prs(&[pr]);
+        let mergeable = find_section(&sections, "Mergeable").expect("should be in Mergeable");
+        assert_eq!(mergeable.prs.len(), 1);
+    }
+
+    #[test]
+    fn approved_and_clean_is_mergeable() {
+        let pr = PullRequest {
+            review_decision: Some("APPROVED".into()),
+            merge_state_status: Some("CLEAN".into()),
+            check_status: CheckStatus::Success,
+            ..make_pr()
+        };
+        let sections = group_prs(&[pr]);
+        let mergeable = find_section(&sections, "Mergeable").expect("should be in Mergeable");
+        assert_eq!(mergeable.prs.len(), 1);
+        assert!(
+            find_section(&sections, "Approved").is_none()
+                || find_section(&sections, "Approved").unwrap().prs.is_empty()
+        );
+    }
+
+    #[test]
+    fn approved_but_blocked_stays_in_approved() {
+        let pr = PullRequest {
+            review_decision: Some("APPROVED".into()),
+            merge_state_status: Some("BLOCKED".into()),
+            check_status: CheckStatus::Success,
+            ..make_pr()
+        };
+        let sections = group_prs(&[pr]);
+        let approved = find_section(&sections, "Approved").expect("should be in Approved");
+        assert_eq!(approved.prs.len(), 1);
+        assert!(
+            find_section(&sections, "Mergeable").is_none()
+                || find_section(&sections, "Mergeable").unwrap().prs.is_empty()
+        );
+    }
+
+    #[test]
+    fn unknown_merge_state_not_mergeable() {
+        let pr = PullRequest {
+            review_decision: None,
+            merge_state_status: None,
+            check_status: CheckStatus::Success,
+            ..make_pr()
+        };
+        let sections = group_prs(&[pr]);
+        assert!(
+            find_section(&sections, "Mergeable").is_none()
+                || find_section(&sections, "Mergeable").unwrap().prs.is_empty(),
+            "Unknown merge state should not be Mergeable"
+        );
+        let waiting = find_section(&sections, "Waiting for Review")
+            .expect("should be in Waiting for Review");
+        assert_eq!(waiting.prs.len(), 1);
     }
 }

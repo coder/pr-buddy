@@ -53,7 +53,8 @@ const PR_FRAGMENT: &str = r#"id
         mergeQueueEntry {
           state
           position
-        }"#;
+        }
+        mergeStateStatus"#;
 
 fn build_pr_query() -> String {
     let since = chrono::Utc::now() - chrono::Duration::days(14);
@@ -166,6 +167,10 @@ fn parse_pr_node(node: &Value) -> Option<PullRequest> {
             .unwrap_or("")
             .to_string(),
         is_review_requested: false,
+        merge_state_status: node
+            .get("mergeStateStatus")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
     })
 }
 
