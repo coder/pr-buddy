@@ -2,6 +2,7 @@ import type { Component, ComponentType, SvelteComponent } from "svelte";
 
 export type PrState = "open" | "closed" | "merged";
 export type CheckStatus = "pending" | "success" | "failure" | "error" | "none";
+export type MergeStateStatus = "BEHIND" | "BLOCKED" | "CLEAN" | "DIRTY" | "DRAFT" | "HAS_HOOKS" | "UNKNOWN" | "UNSTABLE" | null;
 
 export interface MergeQueueInfo {
   state: string;
@@ -36,7 +37,7 @@ export interface PullRequest {
   author_login: string;
   author_avatar_url: string;
   is_review_requested: boolean;
-  merge_state_status: string | null;
+  merge_state_status: MergeStateStatus;
 }
 
 export interface GitHubUser {

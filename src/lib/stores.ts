@@ -18,9 +18,14 @@ export const authenticated = writable(false);
 export const loading = writable(true);
 export const lastUpdated = writable<Date | null>(null);
 
-/** Returns true when GitHub considers the PR actually mergeable (clean or has merge hooks). */
+/** Returns true when GitHub's merge-state check is satisfied (CLEAN or HAS_HOOKS). */
 function isActuallyMergeable(pr: PullRequest): boolean {
   return pr.merge_state_status === "CLEAN" || pr.merge_state_status === "HAS_HOOKS";
+}
+
+/** Returns true when checks have failed or errored. */
+function isCheckFailed(pr: PullRequest): boolean {
+  return pr.check_status === "failure" || pr.check_status === "error";
 }
 
 export function groupPrs(allPrs: PullRequest[]): PrSection[] {
@@ -48,7 +53,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       icon: XCircle,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
-        (pr.check_status === "failure" || pr.check_status === "error")
+        isCheckFailed(pr)
       ),
     },
     {
@@ -56,7 +61,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       icon: RotateCcw,
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
-        pr.check_status !== "failure" && pr.check_status !== "error" &&
+        !isCheckFailed(pr) &&
         pr.review_decision === "CHANGES_REQUESTED"
       ),
     },
@@ -66,7 +71,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         isActuallyMergeable(pr) &&
-        pr.check_status !== "failure" && pr.check_status !== "error" &&
+        pr.check_status === "success" &&
         pr.review_decision !== "CHANGES_REQUESTED"
       ),
     },
@@ -86,7 +91,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         !isActuallyMergeable(pr) &&
-        pr.check_status !== "failure" && pr.check_status !== "error" &&
+        !isCheckFailed(pr) &&
         pr.check_status !== "pending" &&
         pr.review_decision !== "CHANGES_REQUESTED" &&
         pr.review_decision !== "APPROVED"
@@ -98,7 +103,7 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         !isActuallyMergeable(pr) &&
-        pr.check_status !== "failure" && pr.check_status !== "error" &&
+        !isCheckFailed(pr) &&
         pr.review_decision === "APPROVED"
       ),
     },

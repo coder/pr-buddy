@@ -100,47 +100,59 @@ describe("groupPrs", () => {
   });
 
   it("does NOT put review-blocked PR with passing checks in Mergeable (bug fix)", () => {
-    const pr = { ...mockPr, review_decision: "REVIEW_REQUIRED", merge_state_status: "BLOCKED", check_status: "success" as const };
+    const pr = { ...mockPr, review_decision: "REVIEW_REQUIRED", merge_state_status: "BLOCKED" as const, check_status: "success" as const };
     const sections = groupPrs([pr]);
-    expect(sections.find(s => s.title === "Mergeable")).toBeUndefined();
-    const waiting = sections.find(s => s.title === "Waiting for Review");
-    expect(waiting).toBeDefined();
-    expect(waiting!.prs).toHaveLength(1);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Waiting for Review");
   });
 
   it("puts a clean PR in Mergeable", () => {
-    const pr = { ...mockPr, review_decision: null, merge_state_status: "CLEAN", check_status: "success" as const };
+    const pr = { ...mockPr, review_decision: null, merge_state_status: "CLEAN" as const, check_status: "success" as const };
     const sections = groupPrs([pr]);
-    const mergeable = sections.find(s => s.title === "Mergeable");
-    expect(mergeable).toBeDefined();
-    expect(mergeable!.prs).toHaveLength(1);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Mergeable");
   });
 
   it("puts a HAS_HOOKS PR in Mergeable", () => {
-    const pr = { ...mockPr, review_decision: null, merge_state_status: "HAS_HOOKS", check_status: "success" as const };
+    const pr = { ...mockPr, review_decision: null, merge_state_status: "HAS_HOOKS" as const, check_status: "success" as const };
     const sections = groupPrs([pr]);
-    expect(sections.find(s => s.title === "Mergeable")!.prs).toHaveLength(1);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Mergeable");
   });
 
   it("promotes approved + clean PR to Mergeable (not Approved)", () => {
-    const pr = { ...mockPr, review_decision: "APPROVED", merge_state_status: "CLEAN", check_status: "success" as const };
+    const pr = { ...mockPr, review_decision: "APPROVED", merge_state_status: "CLEAN" as const, check_status: "success" as const };
     const sections = groupPrs([pr]);
-    expect(sections.find(s => s.title === "Mergeable")!.prs).toHaveLength(1);
-    expect(sections.find(s => s.title === "Approved")).toBeUndefined();
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Mergeable");
   });
 
   it("keeps approved + blocked PR in Approved", () => {
-    const pr = { ...mockPr, review_decision: "APPROVED", merge_state_status: "BLOCKED", check_status: "success" as const };
+    const pr = { ...mockPr, review_decision: "APPROVED", merge_state_status: "BLOCKED" as const, check_status: "success" as const };
     const sections = groupPrs([pr]);
-    expect(sections.find(s => s.title === "Approved")!.prs).toHaveLength(1);
-    expect(sections.find(s => s.title === "Mergeable")).toBeUndefined();
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Approved");
   });
 
   it("treats unknown merge state as not mergeable", () => {
     const pr = { ...mockPr, review_decision: null, merge_state_status: null, check_status: "success" as const };
     const sections = groupPrs([pr]);
-    expect(sections.find(s => s.title === "Mergeable")).toBeUndefined();
-    expect(sections.find(s => s.title === "Waiting for Review")!.prs).toHaveLength(1);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Waiting for Review");
+  });
+
+  it("excludes review-requested PRs from authored merge-state sections", () => {
+    const pr = { ...mockPr, is_review_requested: true, merge_state_status: "CLEAN" as const, check_status: "success" as const, review_decision: null };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Needs Your Review");
   });
 });
 
