@@ -54,6 +54,7 @@ pub struct PullRequest {
     pub author_login: String,
     pub author_avatar_url: String,
     pub is_review_requested: bool,
+    pub merge_state_status: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

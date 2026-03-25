@@ -36,6 +36,7 @@ const mockPr: PullRequest = {
   author_login: "testuser",
   author_avatar_url: "https://avatars.githubusercontent.com/u/1?v=4",
   is_review_requested: false,
+  merge_state_status: null,
 };
 
 const mockUser: GitHubUser = {
@@ -96,6 +97,70 @@ describe("groupPrs", () => {
     const sections = groupPrs([myPr, reviewPr]);
     expect(sections.find(s => s.title === "Needs Your Review")?.prs).toHaveLength(1);
     expect(sections.find(s => s.title === "Approved")?.prs).toHaveLength(1);
+  });
+
+  it("does NOT put review-blocked PR with passing checks in Mergeable (bug fix)", () => {
+    const pr = { ...mockPr, review_decision: "REVIEW_REQUIRED", merge_state_status: "BLOCKED" as const, check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Waiting for Review");
+  });
+
+  it("puts a clean PR in Mergeable", () => {
+    const pr = { ...mockPr, review_decision: null, merge_state_status: "CLEAN" as const, check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Mergeable");
+  });
+
+  it("puts a HAS_HOOKS PR in Mergeable", () => {
+    const pr = { ...mockPr, review_decision: null, merge_state_status: "HAS_HOOKS" as const, check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Mergeable");
+  });
+
+  it("promotes approved + clean PR to Mergeable (not Approved)", () => {
+    const pr = { ...mockPr, review_decision: "APPROVED", merge_state_status: "CLEAN" as const, check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Mergeable");
+  });
+
+  it("keeps approved + blocked PR in Approved", () => {
+    const pr = { ...mockPr, review_decision: "APPROVED", merge_state_status: "BLOCKED" as const, check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Approved");
+  });
+
+  it("treats unknown merge state as not mergeable", () => {
+    const pr = { ...mockPr, review_decision: null, merge_state_status: null, check_status: "success" as const };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Waiting for Review");
+  });
+
+  it("puts a CLEAN PR with no checks in Mergeable (repos without required checks)", () => {
+    const pr = { ...mockPr, review_decision: null, merge_state_status: "CLEAN" as const, check_status: "none" as const };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Mergeable");
+  });
+
+  it("excludes review-requested PRs from authored merge-state sections", () => {
+    const pr = { ...mockPr, is_review_requested: true, merge_state_status: "CLEAN" as const, check_status: "success" as const, review_decision: null };
+    const sections = groupPrs([pr]);
+    const nonEmpty = sections.filter(s => s.prs.length > 0);
+    expect(nonEmpty).toHaveLength(1);
+    expect(nonEmpty[0].title).toBe("Needs Your Review");
   });
 });
 
