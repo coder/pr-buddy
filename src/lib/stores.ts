@@ -71,7 +71,8 @@ export function groupPrs(allPrs: PullRequest[]): PrSection[] {
       prs: nonDraftOpen.filter(pr =>
         pr.merge_queue_info == null &&
         isActuallyMergeable(pr) &&
-        pr.check_status === "success" &&
+        !isCheckFailed(pr) &&
+        pr.check_status !== "pending" &&
         pr.review_decision !== "CHANGES_REQUESTED"
       ),
     },

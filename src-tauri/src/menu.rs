@@ -95,7 +95,9 @@ fn group_prs(all_prs: &[PullRequest]) -> Vec<PrSection> {
                 .filter(|pr| {
                     pr.merge_queue_info.is_none()
                         && is_actually_mergeable(pr)
-                        && pr.check_status == CheckStatus::Success
+                        && pr.check_status != CheckStatus::Failure
+                        && pr.check_status != CheckStatus::Error
+                        && pr.check_status != CheckStatus::Pending
                         && pr.review_decision.as_deref() != Some("CHANGES_REQUESTED")
                 })
                 .cloned()
@@ -486,5 +488,17 @@ mod tests {
         let sections = group_prs(&[pr]);
         // Should only appear in "Needs Your Review" (review-requested bucket)
         assert_only_in_section(&sections, "Needs Your Review");
+    }
+
+    #[test]
+    fn clean_pr_with_no_checks_is_mergeable() {
+        let pr = PullRequest {
+            review_decision: None,
+            merge_state_status: Some("CLEAN".into()),
+            check_status: CheckStatus::None,
+            ..make_pr()
+        };
+        let sections = group_prs(&[pr]);
+        assert_only_in_section(&sections, "Mergeable");
     }
 }
