@@ -12,6 +12,9 @@ permissions:
 
 jobs:
   release:
+    # The EV signing service account (coder-ci) only trusts jobs in this
+    # environment, which only main and v* tags may use.
+    environment: code-signing
     strategy:
       fail-fast: false
       matrix:
