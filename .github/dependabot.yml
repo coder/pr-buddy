@@ -4,11 +4,18 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  # Tauri crates and npm packages must stay on the same minor version.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "@tauri-apps/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "tauri*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
