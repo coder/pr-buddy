@@ -1,14 +1,149 @@
+# Releases PR Buddy. Dispatched on main with the version and the commit on main
+# to release:
+#
+#   gh workflow run release.yml --repo coder/pr-buddy --ref main \
+#     -f version=v0.4.4 -f commit="$(git rev-parse origin/main)"
 name: Release
+run-name: Release ${{ inputs.version }}
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. v0.4.4"
+        required: true
+        type: string
+      commit:
+        description: "Full SHA of the commit on main to release"
+        required: true
+        type: string
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.version }}
+  cancel-in-progress: false
+
 jobs:
+  # Checks the inputs: a release runs on main, for a commit on main whose
+  # source has the version.
+  validate:
+    name: Check the request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the inputs
+        env:
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$*"; exit 1; }
+
+          [[ "$GITHUB_REF" == "refs/heads/main" ]] || fail "Dispatch a release on main, not on $GITHUB_REF."
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version must look like v1.2.3, got '$VERSION'."
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || fail "commit must be a full 40-character SHA, got '$COMMIT'."
+          git merge-base --is-ancestor "$COMMIT" "$GITHUB_SHA" || fail "$COMMIT is not on main."
+
+          # The version in src-tauri/tauri.conf.json and src-tauri/Cargo.toml of the commit.
+          in_config="v$(git show "$COMMIT:src-tauri/tauri.conf.json" | jq -r .version)"
+          in_cargo="v$(git show "$COMMIT:src-tauri/Cargo.toml" | sed -n -E 's/^version = "(.*)"$/\1/p' | head -n 1)"
+          [[ "$in_config" == "$VERSION" ]] || fail "$COMMIT has version $in_config in tauri.conf.json, not $VERSION."
+          [[ "$in_cargo" == "$VERSION" ]] || fail "$COMMIT has version $in_cargo in Cargo.toml, not $VERSION."
+
+  # Creates the release tag as the coder-release-publisher App, once a reviewer
+  # of the release-approval environment approves the run.
+  approve:
+    name: Approve and tag the release
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: release-approval
+    permissions:
+      contents: read
+      id-token: write # Cloud KMS signs the App's JWT
+    steps:
+      # For the tags and the history of main.
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Check the tag
+        id: check
+        env:
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$*"; exit 1; }
+
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version must look like v1.2.3, got '$VERSION'."
+          [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]] || fail "commit must be a full 40-character SHA, got '$COMMIT'."
+          git merge-base --is-ancestor "$COMMIT" "$GITHUB_SHA" || fail "$COMMIT is not on main."
+
+          # A re-run finds the tag that the first attempt created.
+          if existing="$(git rev-parse --verify --quiet "refs/tags/$VERSION^{commit}")"; then
+            [[ "$existing" == "$COMMIT" ]] || fail "Tag $VERSION already exists at $existing, not at $COMMIT."
+            echo "Tag $VERSION already exists at $COMMIT."
+            echo "create=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # The version is higher than the latest release, and the commit is
+          # not older than it.
+          latest="$(git tag --list 'v*' --sort=-version:refname | grep -E -m 1 '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+          if [[ -n "$latest" ]]; then
+            printf '%s\n' "$latest" "$VERSION" | sort -V -C || fail "$VERSION is not newer than $latest, the latest release."
+            git merge-base --is-ancestor "$latest" "$COMMIT" || fail "$COMMIT is older than the commit released as $latest."
+          fi
+
+          echo "create=true" >> "$GITHUB_OUTPUT"
+
+      # A token for this repository only.
+      - name: Generate release App token
+        id: app_token
+        if: ${{ steps.check.outputs.create == 'true' }}
+        uses: coder/github-app-token-action@00eaec58ee1bfea9c8b48655b7ab7470b07739e5 # main 2026-11-17
+        with:
+          client-id: ${{ secrets.CODER_RELEASE_PUBLISHER_APP_ID }}
+          kms-key: ${{ secrets.CODER_RELEASE_PUBLISHER_APP_KMS_KEY }}
+          workload-identity-provider: ${{ secrets.APP_KEYS_WORKLOAD_ID_PROVIDER }}
+          owner: coder
+          repositories: pr-buddy
+          permissions: |
+            contents: write
+            workflows: write
+
+      # An annotated tag, through the API.
+      - name: Create the tag
+        if: ${{ steps.check.outputs.create == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+          VERSION: ${{ inputs.version }}
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          tag_object="$(gh api "repos/$GITHUB_REPOSITORY/git/tags" \
+            -f tag="$VERSION" -f message="Release $VERSION" -f object="$COMMIT" -f type=commit \
+            --jq .sha)"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$VERSION" -f sha="$tag_object" >/dev/null
+          echo "Created tag $VERSION at $COMMIT."
+
+  # Builds the bundles from the commit and uploads them to a draft GitHub
+  # release of the tag.
   release:
+    name: Build and publish
+    needs: [validate, approve]
+    environment: release
     permissions:
       contents: write
     strategy:
@@ -32,24 +167,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: ${{ inputs.commit }}
           persist-credentials: false
-
-      - name: Sync version from git tag
-        shell: bash
-        run: |
-          if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Unexpected tag name: $GITHUB_REF_NAME" >&2
-            exit 1
-          fi
-          # Extract version from tag (strip leading 'v')
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          # Update tauri.conf.json
-          cd src-tauri
-          sed -i.bak 's/"version": "[^"]*"/"version": "'"$VERSION"'"/' tauri.conf.json && rm -f tauri.conf.json.bak
-          # Update Cargo.toml (only the first version = line, i.e. the package version)
-          sed -i.bak '0,/^version = ".*"/s//version = "'"$VERSION"'"/' Cargo.toml && rm -f Cargo.toml.bak
-          echo "Set version to $VERSION"
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -82,8 +201,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "PR Buddy ${{ github.ref_name }}"
+          tagName: ${{ inputs.version }}
+          releaseName: "PR Buddy ${{ inputs.version }}"
           releaseBody: "See the assets below to download and install this version."
           releaseDraft: true
           prerelease: false
