@@ -93,7 +93,7 @@ last_push=$(echo "$data" | jq -r \
 
 has_thumbsup=$(echo "$data" | jq -r --arg bot "$BOT_LOGIN" --arg since "${last_push:-}" \
   '[.data.repository.pullRequest.reactions.nodes[]?
-    | select(.user.login | startswith($bot))
+    | select(.user.login == $bot or .user.login == ($bot + "[bot]"))
     | select($since == "" or .createdAt > $since)
   ] | length')
 

@@ -4,14 +4,14 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
-permissions:
-  contents: write
-  id-token: write # GCP workload identity for Windows code signing
+permissions: {}
 
 jobs:
   release:
+    permissions:
+      contents: write
+      id-token: write # GCP workload identity for Windows code signing
     # The EV signing service account (coder-ci) only trusts jobs in this
     # environment, which only main and v* tags may use.
     environment: code-signing
@@ -34,12 +34,17 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Sync version from git tag
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
+          if ! [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unexpected tag name: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
           # Extract version from tag (strip leading 'v')
           VERSION="${GITHUB_REF_NAME#v}"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
@@ -50,19 +55,16 @@ jobs:
           sed -i.bak '0,/^version = ".*"/s//version = "'"$VERSION"'"/' Cargo.toml && rm -f Cargo.toml.bak
           echo "Set version to $VERSION"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "24.22.1"
-          cache: "npm"
+          package-manager-cache: false
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
+          toolchain: "1.100.0"
           targets: ${{ matrix.rust_target }}
-
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: "src-tauri -> target"
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -110,7 +112,7 @@ jobs:
           Get-Content signing.conf.json
           Add-Content -Path $env:GITHUB_ENV -Value "SIGNING_ARGS=--config signing.conf.json"
 
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Enable bundler debug logging — sign command stdout/stderr is
