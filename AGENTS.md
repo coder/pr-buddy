@@ -345,7 +345,7 @@ Common prefixes: `feat`, `fix`, `chore`, `refactor`, `docs`.
 2. Alternatively, run them individually: `npm run check`, `npm run test`, `npm run smoke`, `npm run vite:build`.
 3. If Rust code changed and Rust 1.77+ is available, run `(cd src-tauri && cargo fmt && cargo clippy -- -D warnings && cargo check)`.
 4. Do not push to `origin/main` or `origin/master` directly.
-5. Branch names must be prefixed with `mike/` (e.g., `mike/fix-tray-click`).
+5. Branch names must be prefixed with the committer's first name (e.g., `mike/fix-tray-click` for Mike).
 6. **Do not claim imports or dependencies work without running `make smoke`** — `vite build` and `svelte-check` do not catch all import resolution errors that appear in the Vite dev server.
 
 ### Pull Request Descriptions
