@@ -11,10 +11,6 @@ jobs:
   release:
     permissions:
       contents: write
-      id-token: write # GCP workload identity for Windows code signing
-    # The EV signing service account (coder-ci) only trusts jobs in this
-    # environment, which only main and v* tags may use.
-    environment: code-signing
     strategy:
       fail-fast: false
       matrix:
@@ -79,57 +75,9 @@ jobs:
 
       - run: npm ci
 
-      # --- Windows EV code signing via GCP Cloud KMS ---
-      - name: Setup Windows code signing
-        id: windows_signing
-        if: matrix.platform == 'windows-latest'
-        uses: ./.github/actions/setup-windows-signing
-        with:
-          ev_signing_cert: ${{ secrets.EV_SIGNING_CERT }}
-          gcp_workload_id_provider: ${{ vars.GCP_WORKLOAD_ID_PROVIDER }}
-          gcp_service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
-
-      - name: Configure Tauri Windows signCommand
-        if: matrix.platform == 'windows-latest' && env.JSIGN_PATH != ''
-        shell: pwsh
-        run: |
-          # Resolve absolute paths — Tauri's bundler uses std::process::Command
-          # (no shell) so bare names like 'pwsh' fail PATH lookup on Windows.
-          $pwshPath = (Get-Command pwsh).Source -replace '\\', '/'
-          $scriptPath = (Resolve-Path "scripts/sign-windows.ps1").Path -replace '\\', '/'
-          $config = @{
-              bundle = @{
-                  windows = @{
-                      signCommand = @{
-                          cmd = $pwshPath
-                          args = @("-File", $scriptPath, "%1")
-                      }
-                  }
-              }
-          } | ConvertTo-Json -Depth 10
-          $config | Set-Content signing.conf.json
-          Write-Host "signing.conf.json:"
-          Get-Content signing.conf.json
-          Add-Content -Path $env:GITHUB_ENV -Value "SIGNING_ARGS=--config signing.conf.json"
-
       - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Enable bundler debug logging — sign command stdout/stderr is
-          # swallowed on failure; RUST_LOG surfaces the command invocation.
-          RUST_LOG: tauri_bundler=debug
-          # macOS signing & notarization (optional — skipped if not set)
-          APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          # Windows EV signing env vars (used by scripts/sign-windows.ps1)
-          EV_KEYSTORE: ${{ vars.EV_KEYSTORE }}
-          EV_KEY: ${{ vars.EV_KEY }}
-          EV_TSA_URL: ${{ vars.EV_TSA_URL }}
-          GCLOUD_ACCESS_TOKEN: ${{ steps.windows_signing.outputs.gcloud_access_token }}
           # Updater signing (optional — only set when the secret exists)
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
@@ -139,28 +87,4 @@ jobs:
           releaseBody: "See the assets below to download and install this version."
           releaseDraft: true
           prerelease: false
-          args: ${{ matrix.args }} ${{ env.SIGNING_ARGS }}
-
-      # Dump sign script log on failure — Tauri bundler swallows subprocess
-      # stdout/stderr when the sign command exits non-zero, making failures
-      # invisible. The script writes a transcript to $RUNNER_TEMP/sign-windows.log.
-      - name: Dump signing log on failure
-        if: failure() && matrix.platform == 'windows-latest'
-        shell: pwsh
-        run: |
-          $logFile = Join-Path $env:RUNNER_TEMP "sign-windows.log"
-          if (Test-Path $logFile) {
-            Write-Host "=== sign-windows.log ==="
-            Get-Content $logFile
-            Write-Host "=== end sign-windows.log ==="
-          } else {
-            Write-Host "No sign-windows.log found at $logFile"
-            Write-Host "Sign script may not have been invoked, or RUNNER_TEMP differs."
-            Write-Host "Checking TEMP fallback..."
-            $fallback = Join-Path $env:TEMP "sign-windows.log"
-            if (Test-Path $fallback) {
-              Get-Content $fallback
-            } else {
-              Write-Host "No log file found at $fallback either."
-            }
-          }
+          args: ${{ matrix.args }}

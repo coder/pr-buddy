@@ -6,5 +6,4 @@ src-tauri/target/
 *.swp
 *.swo
 src-tauri/gen/
-signing.conf.json
 
