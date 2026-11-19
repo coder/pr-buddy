@@ -31,7 +31,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.3.1",
     "autoprefixer": "^10.4.20",
-    "jsdom": "^28.1.0",
+    "jsdom": "^31.0.0",
     "postcss": "^8.4.49",
     "svelte": "^5.53.7",
     "svelte-check": "^4.0.0",
