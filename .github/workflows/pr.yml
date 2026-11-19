@@ -93,7 +93,7 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev
-      - run: cargo check
+      - run: cargo check --locked
         working-directory: src-tauri
 
   codex-review:
