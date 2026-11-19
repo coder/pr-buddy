@@ -17,7 +17,7 @@ PR Buddy is a lightweight, cross-platform system tray desktop app that monitors 
 | Frontend lang | TypeScript | strict mode |
 | Styling | Tailwind CSS | v3 |
 | Build tool | Vite | v6 |
-| Backend | Rust | edition 2021, requires 1.77+ |
+| Backend | Rust | edition 2021, requires 1.78+ |
 | HTTP client | reqwest | 0.12 |
 | Auth | GitHub OAuth Device Flow | — |
 | API | GitHub GraphQL | search + PR fragments |
@@ -343,7 +343,7 @@ Common prefixes: `feat`, `fix`, `chore`, `refactor`, `docs`.
 
 1. Run `make ci` — this runs type-check, unit tests, smoke test, and production build in sequence.
 2. Alternatively, run them individually: `npm run check`, `npm run test`, `npm run smoke`, `npm run vite:build`.
-3. If Rust code changed and Rust 1.77+ is available, run `(cd src-tauri && cargo fmt && cargo clippy -- -D warnings && cargo check)`.
+3. If Rust code changed and Rust 1.78+ is available, run `(cd src-tauri && cargo fmt && cargo clippy -- -D warnings && cargo check)`.
 4. Do not push to `origin/main` or `origin/master` directly.
 5. Branch names must be prefixed with `mike/` (e.g., `mike/fix-tray-click`).
 6. **Do not claim imports or dependencies work without running `make smoke`** — `vite build` and `svelte-check` do not catch all import resolution errors that appear in the Vite dev server.
