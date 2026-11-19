@@ -37,7 +37,7 @@ runs:
 
     - name: Setup code signing
       shell: pwsh
-      run: |
+      run: | # zizmor: ignore[github-env]
         if (-not $env:EV_SIGNING_CERT) {
           Write-Host "⚠️ No Windows code signing certificate provided - building unsigned"
           exit 0
